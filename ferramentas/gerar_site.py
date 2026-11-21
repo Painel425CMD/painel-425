@@ -2,7 +2,7 @@
 """Gera a versão pública (só leitura) do Painel de Frentes – Contrato 425.
 
 Uso: python3 gerar_site.py dados.json saida/index.html
-dados.json = {"frentes": {"D-001": {...}}, "eventos": {"S001": {...}}, "pendencias": {"P-01": {...}}}
+dados.json = {"frentes": {...}, "eventos": {...}, "pendencias": {...}, "pendhist": {...}}
 (o conteúdo das coleções do painel, lido com db_list).
 Remove telefones e e-mails antes de publicar.
 """
@@ -25,8 +25,10 @@ def limpa(v):
 
 def main(src, out):
     dados = limpa(json.load(open(src, encoding='utf-8')))
-    for c in ('frentes', 'eventos', 'pendencias'):
+    for c in ('frentes', 'eventos', 'pendencias', 'pendhist'):
         dados.setdefault(c, {})
+    # notas internas das pendências não vão para o site aberto
+    dados['pendhist'] = {k: v for k, v in dados['pendhist'].items() if not v.get('interna')}
     agora = datetime.datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y às %Hh%M')
     shim = ('<meta name="robots" content="noindex,nofollow">\n<script>\nwindow.__PUBLIC__=' + json.dumps(agora) + ';\n'
             'window.__SNAP__=' + json.dumps(dados, ensure_ascii=False).replace('</', '<\\/') + ';\n'
