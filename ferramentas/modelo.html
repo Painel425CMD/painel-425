@@ -151,6 +151,11 @@ form.card{display:grid}
 .logrow a:hover{text-decoration:underline}
 .fgrid label[hidden],.quick label[hidden]{display:none}
 dialog{max-height:calc(100vh - 40px);overflow:auto}
+.gantt{max-height:calc(100vh - 110px);overflow:auto;overscroll-behavior:contain}
+.ghead{position:sticky;top:0;z-index:6}
+.ghead .glabel{z-index:7}
+.ghead .gtrack{position:relative}
+.ghead .todaylab{top:19px}
 </style>
 </head>
 <body>
@@ -391,6 +396,7 @@ function renderGantt(){
   const X=t=>(t-lo)/(7*DAY)*pxw;
   const head=el('div',{class:'grow ghead'}, el('div',{class:'glabel'},el('span',{class:'s'},'Frente')), (()=>{const tr=el('div',{class:'gtrack'});
     for(let i=0;i<weeks;i++){const w=new Date(lo.getTime()+i*7*DAY); tr.appendChild(el('div',{class:'week',style:'left:'+(i*pxw)+'px'})); tr.appendChild(el('div',{class:'wlab',style:'left:'+(i*pxw)+'px'},String(w.getDate()).padStart(2,'0')+' '+MESES[w.getMonth()]));}
+    tr.appendChild(el('div',{class:'todaylab',style:'left:'+(X(TODAY)+pxw/14)+'px'},'hoje '+fmt(TODAY)));
     return tr;})());
   g.appendChild(head);
   let groups;
@@ -405,8 +411,7 @@ function renderGantt(){
     for(const x of list) g.appendChild(ganttRow(x,X,weeks,pxw,lo));
   }
   const tl=lw+X(TODAY)+pxw/14;
-  g.appendChild(el('div',{class:'today',style:'left:'+tl+'px'}));
-  g.appendChild(el('div',{class:'todaylab',style:'left:'+tl+'px'},'hoje '+fmt(TODAY)));
+  const tline=el('div',{class:'today',style:'left:'+tl+'px'}); g.appendChild(tline); tline.style.bottom='auto'; tline.style.height=g.scrollHeight+'px';
   if(lw+tw>W) g.scrollLeft=Math.max(0,X(TODAY)-(W-lw)*0.75);
 }
 function ganttRow(x,X,weeks,pxw,lo){
@@ -496,7 +501,7 @@ function head(id,title,pairs){
 function showDet(id){
   const x=dem.find(f=>f.id===id); if(!x){ dlg.close&&dlg.close(); return; }
   detOpen={kind:'f',id};
-  head(x.id+' · '+x.status, x.local, [['Serviço',x.descricao],['Equipe',x.equipe||'A definir'],['Quem pediu',x.solicitante?(x.solicitante+(x.orgao&&x.orgao!=='A confirmar'?' ('+x.orgao+')':'')):''],['Como chegou',x.canal],['Pedido em',x.entrada?fmt(d(x.entrada)):''],['Prioridade',x.prioridade],['Recursos',x.recursos],['Início',x.inicio?fmt(d(x.inicio)):''],['Previsão de término',x.previsao?fmt(d(x.previsao)):(x.sit==='concluida'?'':'Sem previsão – definir com a Move')],['Parada agora',x.paradaAgora?'Desde '+fmt(d(x.paradaAgora.a))+' ('+Math.round((TODAY-d(x.paradaAgora.a))/DAY)+' dias)'+(x.paradaAgora.motivo?' · '+x.paradaAgora.motivo:''):''],['Concluída em',x.termino?fmt(d(x.termino)):''],['Observações',x.obs]]);
+  head(x.id+' · '+x.status, x.local, [['Serviço',x.descricao],['Equipe',x.equipe||'A definir'],['Quem pediu',x.solicitante?(x.solicitante+(x.orgao&&x.orgao!=='A confirmar'?' ('+x.orgao+')':'')):''],['Como chegou',x.canal],['Pedido em',x.entrada?fmt(d(x.entrada)):''],['Prioridade',x.prioridade],['Recursos',x.recursos],['Início',x.inicio?fmt(d(x.inicio)):''],['Previsão de término',x.previsao?fmt(d(x.previsao)):(x.sit==='concluida'?'':'Sem previsão de término (a definir)')],['Parada agora',x.paradaAgora?'Desde '+fmt(d(x.paradaAgora.a))+' ('+Math.round((TODAY-d(x.paradaAgora.a))/DAY)+' dias)'+(x.paradaAgora.motivo?' · '+x.paradaAgora.motivo:''):''],['Concluída em',x.termino?fmt(d(x.termino)):''],['Observações',x.obs]]);
   // histórico
   const h=el('div',{class:'hist'},el('h4',{},'Histórico da frente'));
   const evs=x.eventos.slice().reverse();
