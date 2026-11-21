@@ -186,6 +186,10 @@ dialog{max-height:calc(100vh - 40px);overflow:auto}
 .lbox .lx{position:absolute;top:10px;right:12px}
 .lbox .lcap{color:#e8ecf2;font-size:13px}
 .lbox .lcap .del{color:#ffb4a8}
+
+.qbox{position:relative;flex:1;min-width:200px;display:flex}
+.qbox svg{position:absolute;left:10px;top:50%;width:17px;height:17px;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.qbox input[type=search]{flex:1;padding-left:34px;font-size:15px;min-height:38px}
 </style>
 </head>
 <body>
@@ -205,7 +209,7 @@ dialog{max-height:calc(100vh - 40px);overflow:auto}
   <div class="view" id="painel" role="tabpanel" aria-labelledby="t-painel">
     <section class="tiles" id="tiles" aria-label="Resumo por situação"></section>
     <div class="bar" role="group" aria-label="Filtros">
-      <input type="search" id="q" placeholder="Buscar rua, serviço ou equipe…" aria-label="Buscar">
+      <div class="qbox"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg><input type="search" id="q" placeholder="Buscar rua, serviço, equipe ou frente…" aria-label="Buscar" autocomplete="off"></div>
       <label for="fEquipe">Equipe</label>
       <select id="fEquipe"><option value="">Todas</option></select>
       <label for="fParada">Paradas</label>
@@ -366,11 +370,14 @@ function derive(){
   pen = PD.map(p=>({...p,hist:PH.filter(h=>h.pendencia===p.id&&!(window.__PUBLIC__&&h.interna)).sort((a,b)=>(a.data<b.data?-1:a.data>b.data?1:(a.criadoEm||0)-(b.criadoEm||0)))})); penAbertas = pen.filter(p=>!PFECH.includes(p.situacao));
 }
 
+const norm=t=>str(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const qTerms=()=>norm(state.q).split(/[\s,;]+/).filter(Boolean);
+const hit=(terms,parts)=>{ if(!terms.length) return true; const h=norm(parts.join(' ')); return terms.every(t=>h.includes(t)); };
 function filtered(){
-  const q=state.q.trim().toLowerCase();
+  const terms=qTerms();
   return dem.filter(x=>(!state.sit||x.sit===state.sit)&&(!state.equipe||x.equipe===state.equipe)
     &&(!state.parada||(state.parada==='agora'?x.sit==='parada':x.pausas.length>0))
-    &&(!q||[x.local,x.descricao,x.equipe,x.solicitante,x.id].join(' ').toLowerCase().includes(q)));
+    &&hit(terms,[x.local,x.descricao,x.equipe,x.solicitante,x.id,x.obs,x.orgao,x.prioridade,x.status].concat((x.eventos||[]).map(e=>[e.texto,e.quem,e.motivo].join(' ')))));
 }
 
 /* ---------- tiles ---------- */
@@ -507,8 +514,8 @@ function renderPend(){
   const box=$('plist'); box.textContent='';
   const ags=[...new Set(pen.filter(p=>!PFECH.includes(p.situacao)).map(p=>p.aguardando).filter(Boolean))].sort();
   const sa=$('fAg'); sa.textContent=''; sa.appendChild(el('option',{value:''},'Aguardando: todos')); ags.forEach(a=>sa.appendChild(el('option',{value:a},'Aguardando: '+a))); sa.value=ags.includes(fAg)?fAg:(fAg='');
-  const q=state.q.trim().toLowerCase();
-  let list=pen.filter(p=>!q||[p.pedido,p.local,p.quem,p.id,p.porque,p.aguardando].join(' ').toLowerCase().includes(q));
+  const terms=qTerms();
+  let list=pen.filter(p=>hit(terms,[p.pedido,p.local,p.quem,p.id,p.porque,p.aguardando,p.deQuem,p.situacao].concat(p.hist.map(h=>h.texto+' '+h.quem))));
   if(fAg) list=list.filter(p=>p.aguardando===fAg);
   if(state.sit==='concluida') list=list.filter(p=>PFECH.includes(p.situacao));
   else if(state.sit) list=list.filter(p=>!PFECH.includes(p.situacao));
