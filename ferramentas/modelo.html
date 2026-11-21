@@ -166,6 +166,9 @@ dialog{max-height:calc(100vh - 40px);overflow:auto}
 .quick textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:6px 8px;width:100%;min-height:52px}
 .quick .chk{display:flex;align-items:center;gap:6px;flex-direction:row}
 .quick .chk input{width:auto}
+
+#dbody dd .pen{margin-left:8px;border:0;background:none;color:var(--accent);font-size:12px;cursor:pointer;padding:2px 4px;border-radius:4px}
+#dbody dd .pen:hover{background:color-mix(in srgb,var(--accent) 12%,transparent)}
 </style>
 </head>
 <body>
@@ -599,9 +602,13 @@ function showPend(id){
   const p=pen.find(y=>y.id===id); if(!p){ dlg.close&&dlg.close(); return; }
   detOpen={kind:'p',id};
   const fr=p.frente?dem.find(f=>f.id===p.frente):null;
-  head(p.id+' · '+(p.situacao||'Aberta'), p.pedido, [['Quem pediu',p.quem],['De quem é',p.deQuem],['Data',fmt(d(p.data))],['Local',p.local],['Aguardando',PFECH.includes(p.situacao)?'':(p.aguardando||'A definir')],['Virou a frente',fr?(fr.id+' · '+fr.local):(p.frente||'')]]);
+  head(p.id+' · '+(p.situacao||'Aberta'), p.pedido, [['Quem pediu',p.quem||'—'],['De quem é',p.deQuem||'—'],['Data',p.data?fmt(d(p.data)):'—'],['Local',p.local||'—'],['Aguardando',p.aguardando||(PFECH.includes(p.situacao)?'—':'A definir')],['Virou a frente',fr?(fr.id+' · '+fr.local):(p.frente||'')]]);
   if(fr){ const dd=[...$('dbody').querySelectorAll('dd')].pop(); dd.textContent=''; dd.appendChild(el('a',{href:'#',onclick:e=>{e.preventDefault();showDet(fr.id);}},fr.id+' · '+fr.local)); }
   const can=canWrite!==false && db;
+  const pf=can?pendForm(p):null;
+  if(can){ const keys={'Quem pediu':'quem','De quem é':'deQuem','Data':'data','Local':'local','Aguardando':'aguardando'};
+    for(const dt of $('dbody').querySelectorAll('dt')){ const k=keys[dt.textContent]; if(!k) continue; const dd=dt.nextElementSibling;
+      dd.appendChild(el('button',{class:'pen',type:'button','aria-label':'Editar '+dt.textContent,title:'Editar',onclick:()=>{const hq=dextra.querySelector('.quick.hq'); if(hq) hq.hidden=true; pf.hidden=false; const f=pf.querySelector('[data-k="'+k+'"]'); pf.scrollIntoView({behavior:'smooth',block:'nearest'}); f&&f.focus({preventScroll:true});}},'✎ editar')); } }
   dextra.appendChild(el('div',{class:'porque'},el('b',{},PFECH.includes(p.situacao)?'Situação':'Está pendente porque…'),p.porque||(PFECH.includes(p.situacao)?p.situacao:'Motivo ainda não registrado.')));
   const h=el('div',{class:'hist'},el('h4',{},'Histórico de respostas e observações'));
   const hs=p.hist.slice().reverse();
@@ -617,13 +624,13 @@ function showPend(id){
   dextra.appendChild(h);
   if(can){
     const act=el('div',{class:'dact'});
-    const hq=histForm(p,null); const pf=pendForm(p);
+    const hq=histForm(p,null); hq.classList.add('hq');
     const sel=el('select',{class:'fag',style:'margin-left:0','aria-label':'Mudar situação'},PSITS.map(s=>el('option',{},s)));
     sel.value=PSITS.includes(p.situacao)?p.situacao:'Aberta';
     const msg=el('span',{class:'msg',role:'status'});
     sel.addEventListener('change',async()=>{msg.className='msg';msg.textContent='Salvando…';try{await db.collection('pendencias').doc(p.id).update({situacao:sel.value});msg.textContent='';}catch(e){msg.className='msg err';msg.textContent='Não foi possível salvar.';writeErr(e);}});
     act.appendChild(el('button',{class:'btn primary',type:'button',onclick:()=>{pf.hidden=true;hq.hidden=!hq.hidden; if(!hq.hidden) hq.querySelector('textarea').focus();}},'Adicionar ao histórico'));
-    act.appendChild(el('button',{class:'btn',type:'button',onclick:()=>{hq.hidden=true;pf.hidden=!pf.hidden;}},'Editar pendência'));
+    act.appendChild(el('button',{class:'btn',type:'button',onclick:()=>{hq.hidden=true;pf.hidden=!pf.hidden;}},'Editar dados da pendência'));
     if(!p.frente) act.appendChild(el('button',{class:'btn',type:'button',onclick:()=>frenteDePend(p)},'Criar frente a partir desta'));
     act.appendChild(el('label',{style:'display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)'},'Situação',sel));
     act.appendChild(delBtn(()=>db.collection('pendencias').doc(p.id).delete().then(()=>dlg.close())));
@@ -660,9 +667,9 @@ function histForm(p,old){
 }
 function pendForm(p){
   const fld=(lab,node,full)=>el('label',{class:full?'full':null},lab,node);
-  const pedido=el('input',{value:p.pedido}), quem=el('input',{list:'pessoas',value:p.quem}), data=el('input',{type:'date',value:p.data||''}), local=el('input',{value:p.local});
-  const deQuem=el('select',{},['Move','Prefeitura','Sinarco','Terceiros'].map(o=>el('option',{},o))); if(p.deQuem&&![...deQuem.options].some(o=>o.value===p.deQuem)) deQuem.appendChild(el('option',{},p.deQuem)); deQuem.value=p.deQuem||'Move';
-  const ag=el('input',{list:'aguardandoList',value:p.aguardando}); const porque=el('textarea',{}); porque.value=p.porque||'';
+  const pedido=el('input',{value:p.pedido||''}), quem=el('input',{list:'pessoas',value:p.quem||'','data-k':'quem'}), data=el('input',{type:'date',value:p.data||'','data-k':'data'}), local=el('input',{value:p.local||'','data-k':'local'});
+  const deQuem=el('select',{'data-k':'deQuem'},['Move','Prefeitura','Sinarco','Terceiros'].map(o=>el('option',{},o))); if(p.deQuem&&![...deQuem.options].some(o=>o.value===p.deQuem)) deQuem.appendChild(el('option',{},p.deQuem)); deQuem.value=p.deQuem||'Move';
+  const ag=el('input',{list:'aguardandoList',value:p.aguardando||'','data-k':'aguardando',placeholder:'Move, Sinarco, Copasa…'}); const porque=el('textarea',{}); porque.value=p.porque||'';
   const msg=el('span',{class:'msg',role:'status'}); const btn=el('button',{class:'btn primary',type:'button'},'Salvar pendência');
   const f=el('div',{class:'quick',hidden:''},fld('Pendência / pedido',pedido,1),fld('Quem pediu',quem),fld('De quem é',deQuem),fld('Data',data),fld('Aguardando quem',ag),fld('Local',local,1),fld('Está pendente porque…',porque,1),el('div',{class:'full',style:'display:flex;gap:10px;align-items:center'},btn,msg));
   btn.addEventListener('click',async()=>{
