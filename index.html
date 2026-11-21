@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de Frentes – Contrato 425</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+
+/* Layout: cabeçalho com resumo, filtros por situação, linha do tempo (Gantt) e lista de pendências. */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --ink:#18212f; --muted:#5d6878; --line:#dde2e9; --accent:#1d5fbf;
+  --run:#2f8f5b; --pause:#e0782a; --pend:#7b5bd0; --done:#a3abb6; --plan:#3f86d9; --risk:#c73a3a;
+  --runbg:#e3f3ea; --pausebg:#fcebdc; --pendbg:#ece7fa; --donebg:#eceff2;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11161e; --surface:#19202b; --ink:#e7ecf3; --muted:#9aa6b6; --line:#2b3442; --accent:#6aa3ff;
+  --run:#4fbf83; --pause:#f29a55; --pend:#a58cf0; --done:#6c7684; --plan:#6aa3ff; --risk:#ef6b6b;
+  --runbg:#16352a; --pausebg:#3b2617; --pendbg:#2a2342; --donebg:#232a35; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#11161e; --surface:#19202b; --ink:#e7ecf3; --muted:#9aa6b6; --line:#2b3442; --accent:#6aa3ff;
+  --run:#4fbf83; --pause:#f29a55; --pend:#a58cf0; --done:#6c7684; --plan:#6aa3ff; --risk:#ef6b6b;
+  --runbg:#16352a; --pausebg:#3b2617; --pendbg:#2a2342; --donebg:#232a35; color-scheme:dark;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--body)}
+.wrap{max-width:1280px;margin:0 auto;padding:20px 16px 48px;display:grid;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px}
+h1{font:700 26px/1.1 var(--display);margin:0;letter-spacing:.2px;text-wrap:balance}
+.sub{color:var(--muted);font-size:13px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;text-align:left;font:inherit;color:inherit;border-left:5px solid var(--c);display:grid;gap:2px;transition:box-shadow .15s}
+.tile:hover{box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.tile[aria-pressed="true"]{outline:2px solid var(--c);outline-offset:1px}
+.tile .n{font:700 30px/1 var(--display);font-variant-numeric:tabular-nums}
+.tile .l{font-weight:600}
+.tile .h{color:var(--muted);font-size:12px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.bar label{font-size:12px;color:var(--muted)}
+select,input[type=search]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:6px 9px}
+input[type=search]{min-width:180px;flex:1}
+.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:7px;padding:6px 10px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.card h2{font:600 17px/1.2 var(--display);margin:0;padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.card h2 small{font:400 12px var(--body);color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font:400 12px var(--body);color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:9px;border-radius:3px;margin-right:5px;vertical-align:middle}
+.gantt{overflow-x:auto;position:relative}
+.grow{display:grid;grid-template-columns:var(--lw) 1fr;min-width:calc(var(--lw) + var(--tw))}
+.glabel{position:sticky;left:0;z-index:2;background:var(--surface);border-right:1px solid var(--line);padding:6px 10px;display:flex;gap:8px;align-items:center;min-height:42px;cursor:pointer}
+.glabel .t{font-weight:600;font-size:13px;line-height:1.2}
+.glabel .s{font-size:11.5px;color:var(--muted)}
+.dot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--c)}
+.gtrack{position:relative;border-bottom:1px solid var(--line);min-height:42px;cursor:pointer}
+.grow:hover .gtrack,.grow:hover .glabel{background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
+.ghead .glabel,.ghead .gtrack{min-height:34px;cursor:default;background:var(--surface)}
+.ghead .gtrack{border-bottom:1px solid var(--line)}
+.week{position:absolute;top:0;bottom:0;border-left:1px solid var(--line);opacity:.55}
+.wlab{position:absolute;top:3px;font-size:11px;color:var(--muted);transform:translateX(4px);white-space:nowrap}
+.seg{position:absolute;top:12px;height:18px;border-radius:5px;background:var(--c)}
+.seg.pausa{background:repeating-linear-gradient(135deg,var(--pause) 0 5px,color-mix(in srgb,var(--pause) 45%,var(--surface)) 5px 10px)}
+.seg.aberto{background:linear-gradient(90deg,var(--c) 70%,transparent)}
+.seg.prev{background:color-mix(in srgb,var(--c) 30%,var(--surface));border:1.5px dashed var(--c)}
+.mark{position:absolute;top:8px;width:0;height:0}
+.today{position:absolute;top:0;bottom:0;border-left:2px solid var(--risk);z-index:1;pointer-events:none}
+.todaylab{position:absolute;top:18px;font-size:10.5px;font-weight:600;color:var(--risk);transform:translateX(4px);white-space:nowrap}
+.grp{position:sticky;left:0;font:600 12px var(--display);letter-spacing:.6px;text-transform:uppercase;color:var(--muted);padding:10px 10px 4px;background:var(--bg);border-bottom:1px solid var(--line)}
+.empty{padding:24px;color:var(--muted);text-align:center}
+.two{display:grid;grid-template-columns:1fr 2fr;gap:16px;align-items:start}
+@media (max-width:900px){.two{grid-template-columns:1fr}}
+.plist{display:grid}
+.pitem{padding:10px 14px;border-bottom:1px solid var(--line);display:grid;gap:3px;cursor:pointer}
+.pitem:hover{background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
+.pitem .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.pitem .ped{font-weight:600;font-size:13px}
+.pitem .meta{font-size:12px;color:var(--muted)}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--bgc);color:var(--c);white-space:nowrap}
+.age{font-variant-numeric:tabular-nums;font-size:12px;font-weight:600;color:var(--c)}
+.donut{display:flex;gap:14px;align-items:center;padding:14px;flex-wrap:wrap}
+.donut svg{flex:none}
+.dl{display:grid;gap:4px;font-size:13px}
+.dl span{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+#tip{position:fixed;z-index:20;pointer-events:none;background:var(--ink);color:var(--surface);font-size:12px;padding:7px 9px;border-radius:7px;max-width:280px;opacity:0;transition:opacity .1s}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);max-width:560px;width:calc(100% - 32px);padding:0}
+dialog::backdrop{background:rgba(10,14,20,.45)}
+.dhead{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.dhead h3{margin:0;font:600 19px/1.2 var(--display)}
+.dbody{padding:12px 16px 16px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}
+.dbody dt{color:var(--muted)}
+.dbody dd{margin:0}
+.foot{color:var(--muted);font-size:12px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tab{font:600 15px var(--display);background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:8px 14px;cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.view[hidden]{display:none}
+.view{display:grid;gap:16px}
+.legendbox{display:flex;flex-wrap:wrap;gap:10px 18px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--muted);align-items:center}
+.legendbox .k{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:26px;height:12px;border-radius:4px;position:relative}
+.sw.diamond{width:10px;height:10px;transform:rotate(45deg);border-radius:1px;background:var(--ink)}
+.sw.todaysw{width:2px;height:16px;border-radius:0;background:var(--risk)}
+.pmark{position:absolute;top:16px;width:9px;height:9px;transform:rotate(45deg);background:var(--ink);margin-left:-4px;z-index:1}
+.seg .lbl{position:absolute;inset:0;display:flex;align-items:center;padding:0 6px;font-size:10.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-shadow:0 0 3px rgba(0,0,0,.45)}
+.seg.pausa .lbl{color:#fff}
+.forms{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}
+form.card{display:grid}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;padding:14px}
+.fgrid .full{grid-column:1/-1}
+.fgrid label{display:grid;gap:4px;font-size:12px;color:var(--muted);font-weight:500}
+.fgrid input,.fgrid select,.fgrid textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:100%}
+.fgrid textarea{min-height:64px;resize:vertical}
+.factions{display:flex;gap:10px;align-items:center;padding:0 14px 14px;flex-wrap:wrap}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.msg{font-size:12.5px;color:var(--muted)}
+.msg.ok{color:var(--run)} .msg.err{color:var(--risk)}
+.hist{grid-column:1/-1;margin-top:6px;border-top:1px solid var(--line);padding-top:10px}
+.hist h4{margin:0 0 8px;font:600 15px var(--display)}
+.ev{display:grid;grid-template-columns:54px 14px 1fr;gap:0 8px;position:relative;padding-bottom:10px}
+.ev .dt{font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);padding-top:1px}
+.ev .bul{width:12px;height:12px;border-radius:50%;background:var(--c);margin-top:3px;position:relative;z-index:1}
+.ev:not(:last-child)::before{content:"";position:absolute;left:68px;top:14px;bottom:0;width:2px;background:var(--line)}
+.ev .tx b{font-weight:600}
+.ev .tx .m{display:block;color:var(--muted);font-size:12.5px}
+.del{background:none;border:0;color:var(--muted);cursor:pointer;font-size:12px;padding:0 4px;text-decoration:underline}
+.loglist{display:grid}
+.logrow{display:grid;grid-template-columns:70px 1fr auto;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);align-items:start;font-size:13px}
+.logrow .m{color:var(--muted);font-size:12px}
+.banner{background:var(--pausebg);color:var(--ink);border:1px solid var(--pause);border-radius:9px;padding:9px 12px;font-size:13px}
+.banner[hidden]{display:none}
+.dact{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.quick{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px;margin-top:4px}
+.quick[hidden]{display:none}
+.quick label{display:grid;gap:3px;font-size:12px;color:var(--muted)}
+.quick input,.quick select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:6px 8px;width:100%}
+.quick .full{grid-column:1/-1}
+@media (max-width:520px){.fgrid,.quick{grid-template-columns:1fr}}
+.grow.stopped .gtrack{background:color-mix(in srgb,var(--pause) 7%,var(--surface))}
+.grow.stopped .glabel{background:color-mix(in srgb,var(--pause) 9%,var(--surface))}
+.glabel .s.stop{color:var(--pause);font-weight:600}
+.seg.pausa.agora{outline:2px solid var(--pause);outline-offset:1px}
+.wrap>header+.banner{margin-top:-4px}
+.logrow a{color:var(--ink);font-weight:600;text-decoration:none}
+.logrow a:hover{text-decoration:underline}
+.fgrid label[hidden],.quick label[hidden]{display:none}
+dialog{max-height:calc(100vh - 40px);overflow:auto}
+</style>
+<meta name="robots" content="noindex,nofollow">
+<script>
+window.__PUBLIC__="20/11/2026 \u00e0s 22h55";
+window.__SNAP__={"frentes": {"D-001": {"local": "Posto de Saúde – Rua João Dias de Moura", "descricao": "Roçada", "solicitante": "Gleidstone Soares", "orgao": "Move (fiscalização)", "entrada": "2026-11-17", "canal": "Grupo Move/Sinarco", "equipe": "Abraão (roçada)", "prioridade": "", "status": "Programada", "inicio": "2026-11-18", "previsao": null, "termino": null, "obs": "Pedido no grupo em 17/11 (roçada pela manhã de 18/11).", "recursos": ""}, "D-002": {"local": "Ponte Cuiabá", "descricao": "Guarda-corpo de concreto", "solicitante": "Gleidstone Soares", "orgao": "Move (fiscalização)", "entrada": "2026-10-27", "canal": "Grupo Move/Sinarco", "equipe": "Jair", "prioridade": "", "status": "Em execução", "inicio": "2026-11-13", "previsao": null, "termino": null, "obs": "Pedido em 27/10; aguardou a prioridade de Itacolomi.", "recursos": ""}, "D-003": {"local": "Distrito de Itacolomi – praça e Rua Santa Rita", "descricao": "Reforma de praça, meio-fio e calçamento sextavado/intertravado", "solicitante": "Patrick (Move)", "orgao": "Move (fiscalização)", "entrada": "2026-10-28", "canal": "Grupo Move/Sinarco", "equipe": "Jair", "prioridade": "1 - Urgente", "status": "Em execução", "inicio": "2026-10-28", "previsao": null, "termino": null, "obs": "Prioridade pedida pela fiscalização (04/11). Pais e Filhos também atuou em 30/10.", "recursos": ""}, "D-004": {"local": "Rua Nova Bandeirinha", "descricao": "Reforço do subleito, sub-base e regularização da base", "solicitante": "", "orgao": "A confirmar", "entrada": null, "canal": "Reunião semanal", "equipe": "Edson", "prioridade": "", "status": "Em execução", "inicio": "2026-10-23", "previsao": null, "termino": null, "obs": "Pausou de novo em 16/11 por chuva e voltou em 17/11.", "recursos": ""}, "D-005": {"local": "Rua Camponeza e vias da sede", "descricao": "Operação Tapa-Buracos (OTB) – sede", "solicitante": "", "orgao": "A confirmar", "entrada": null, "canal": "Reunião semanal", "equipe": "Alessandro", "prioridade": "", "status": "Em execução", "inicio": "2026-09-23", "previsao": null, "termino": null, "obs": "OTB contínuo. Em 17/11: aguardando localização dos pontos pela fiscalização.", "recursos": ""}, "D-006": {"local": "Rua Tabelião Zenito Moreira, nº 91 a 140 – Vila Caetano", "descricao": "OTB – recuperação do pavimento (reclamação de moradora)", "solicitante": "Gleidstone Soares / Wesley Move", "orgao": "Move (fiscalização)", "entrada": "2026-11-11", "canal": "Grupo Move/Sinarco", "equipe": "Delveson", "prioridade": "2 - Alta", "status": "Em execução", "inicio": "2026-11-17", "previsao": "2026-11-19", "termino": null, "obs": "Interdição autorizada pelo trânsito: 3 dias a partir de 17/11, desvio pela Rua Joaquim Costinha.", "recursos": ""}, "D-007": {"local": "Vias da sede (Ouvidoria)", "descricao": "Alteamento de PVs e limpeza de boca de lobo", "solicitante": "Wesley Move", "orgao": "Move (fiscalização)", "entrada": "2026-11-16", "canal": "Grupo Move/Sinarco", "equipe": "Delveson", "prioridade": "", "status": "Em execução", "inicio": "2026-11-17", "previsao": null, "termino": null, "obs": "Demandas da Ouvidoria.", "recursos": ""}, "D-008": {"local": "Distrito do Meloso", "descricao": "Meio-fio e sistema de drenagem", "solicitante": "", "orgao": "A confirmar", "entrada": null, "canal": "Reunião semanal", "equipe": "Jonas (terceirizado)", "prioridade": "", "status": "Em execução", "inicio": "2026-09-23", "previsao": null, "termino": null, "obs": "Pausado de 09/11 a 12/11.", "recursos": ""}, "D-009": {"local": "Ponto de ônibus (Estrada de Córregos)", "descricao": "Instalação de ponto de ônibus", "solicitante": "", "orgao": "A confirmar", "entrada": null, "canal": "Reunião semanal", "equipe": "KRV (terceirizado)", "prioridade": "", "status": "Em execução", "inicio": "2026-09-23", "previsao": null, "termino": null, "obs": "", "recursos": ""}, "D-010": {"local": "Rua Camponeza", "descricao": "Meio-fio, regularização de passeio, sarjeta e drenagem", "solicitante": "", "orgao": "A confirmar", "entrada": null, "canal": "Reunião semanal", "equipe": "KRV (terceirizado)", "prioridade": "", "status": "Em execução", "inicio": "2026-09-29", "previsao": null, "termino": null, "obs": "KRV com apoio do Edson.", "recursos": ""}, "D-011": {"local": "Rua Albertino da Silva Santiago", "descricao": "Demolição e reconstrução de passeio", "solicitante": "", "orgao": "A confirmar", "entrada": null, "canal": "Grupo Move/Sinarco", "equipe": "Pais e Filhos (terceirizado)", "prioridade": "", "status": "Em execução", "inicio": "2026-11-12", "previsao": null, "termino": null, "obs": "Medições de 13/11: 7,70×2,40; 20,40×1,40; 2,70×2,20 m.", "recursos": ""}, "D-012": {"local": "Aeroporto – atrás da Sinarco", "descricao": "Tapume (vedação com telha de zinco), portão e redes de água e esgoto", "solicitante": "Gleidstone Soares", "orgao": "Move (fiscalização)", "entrada": null, "canal": "Grupo Move/Sinarco", "equipe": "Jair", "prioridade": "", "status": "Em execução", "inicio": "2026-10-27", "previsao": null, "termino": null, "obs": "Portão instalado em 17/11. Falta a rede de água e esgoto combinada com o Gleidstone.", "recursos": ""}, "D-013": {"local": "Rua Itambé do Mato Dentro", "descricao": "Sarjeta e passeio", "solicitante": "", "orgao": "A confirmar", "entrada": null, "canal": "Grupo Move/Sinarco", "equipe": "Pais e Filhos (terceirizado)", "prioridade": "", "status": "Pausada", "inicio": "2026-10-26", "previsao": null, "termino": null, "obs": "Também esteve pausada de 09/11 a 12/11.", "recursos": ""}, "D-014": {"local": "Bairro Cruzeiro", "descricao": "Drenagem superficial – sarjeta nas vias", "solicitante": "", "orgao": "A confirmar", "entrada": null, "canal": "Grupo Move/Sinarco", "equipe": "Pais e Filhos (terceirizado)", "prioridade": "", "status": "Pausada", "inicio": "2026-11-04", "previsao": null, "termino": null, "obs": "", "recursos": ""}, "D-015": {"local": "Rua São Francisco", "descricao": "Passeio", "solicitante": "", "orgao": "A confirmar", "entrada": null, "canal": "Grupo Move/Sinarco", "equipe": "", "prioridade": "", "status": "Em execução", "inicio": "2026-11-17", "previsao": null, "termino": null, "obs": "Apareceu nas fotos de 17/11 sem estar na programação. Confirmar equipe.", "recursos": ""}, "D-016": {"local": "Rua Matosinhos", "descricao": "Contenção (muro de arrimo)", "solicitante": "", "orgao": "A confirmar", "entrada": null, "canal": "Reunião semanal", "equipe": "Jair", "prioridade": "", "status": "Concluída", "inicio": "2026-10-13", "previsao": null, "termino": "2026-11-12", "obs": "100% concluída (confirmado). Término real = último relatório, 12/11; ajustar se necessário.", "recursos": ""}, "D-017": {"local": "Entorno do Santuário Matosinhos", "descricao": "Manutenção de calçamento antes da inauguração pelo prefeito", "solicitante": "Gleidstone Soares", "orgao": "Move (fiscalização)", "entrada": "2026-11-05", "canal": "Grupo Move/Sinarco", "equipe": "Erick", "prioridade": "1 - Urgente", "status": "Concluída", "inicio": "2026-11-05", "previsao": "2026-11-06", "termino": "2026-11-06", "obs": "Pedido para parar uma frente; equipe saiu do Beco Levi Costa.", "recursos": ""}, "D-018": {"local": "Beco / Travessa Levi Costa", "descricao": "Regularização e concretagem de piso", "solicitante": "", "orgao": "A confirmar", "entrada": null, "canal": "Grupo Move/Sinarco", "equipe": "Jair", "prioridade": "", "status": "Concluída", "inicio": "2026-11-05", "previsao": null, "termino": "2026-11-13", "obs": "Últimos acabamentos em 13/11.", "recursos": ""}, "D-019": {"local": "MG-010 – entrada da cidade (vindo de BH)", "descricao": "OTB emergencial", "solicitante": "Wesley Move", "orgao": "Move (fiscalização)", "entrada": "2026-11-03", "canal": "Grupo Move/Sinarco", "equipe": "", "prioridade": "1 - Urgente", "status": "Concluída", "inicio": "2026-11-04", "previsao": null, "termino": "2026-11-04", "obs": "", "recursos": ""}, "D-020": {"local": "Rua Afonso Guimarães", "descricao": "OTB após manutenção do sistema de drenagem", "solicitante": "", "orgao": "A confirmar", "entrada": null, "canal": "Grupo Move/Sinarco", "equipe": "Matheus", "prioridade": "", "status": "Concluída", "inicio": "2026-11-03", "previsao": null, "termino": "2026-11-03", "obs": "Encerra a demanda da BL entupida (reclamação de morador em 17/10).", "recursos": ""}, "D-021": {"local": "Vias da sede", "descricao": "Alteamento de PVs (1 pedreiro + 1 ajudante)", "solicitante": "Wesley Move", "orgao": "Move (fiscalização)", "entrada": "2026-11-03", "canal": "Grupo Move/Sinarco", "equipe": "", "prioridade": "", "status": "Concluída", "inicio": "2026-11-04", "previsao": null, "termino": "2026-11-05", "obs": "", "recursos": ""}, "D-022": {"local": "Talude do Aeroporto", "descricao": "Roçada (1.200 + 2.250 + 3.200 m² registrados)", "solicitante": "Gleidstone Soares", "orgao": "Move (fiscalização)", "entrada": "2026-11-06", "canal": "Grupo Move/Sinarco", "equipe": "Abraão (roçada)", "prioridade": "", "status": "Concluída", "inicio": "2026-11-06", "previsao": null, "termino": "2026-11-13", "obs": "", "recursos": ""}, "D-023": {"local": "Secretaria de Obras", "descricao": "Roçada – 3.750 m²", "solicitante": "Gleidstone Soares", "orgao": "Move (fiscalização)", "entrada": "2026-11-06", "canal": "Grupo Move/Sinarco", "equipe": "Abraão (roçada)", "prioridade": "", "status": "Concluída", "inicio": "2026-11-16", "previsao": null, "termino": "2026-11-17", "obs": "", "recursos": ""}, "D-024": {"local": "Trevo Bougainville", "descricao": "Roçada", "solicitante": "", "orgao": "A confirmar", "entrada": null, "canal": "Grupo Move/Sinarco", "equipe": "Abraão (roçada)", "prioridade": "", "status": "Concluída", "inicio": "2026-11-04", "previsao": null, "termino": "2026-11-05", "obs": "", "recursos": ""}, "D-025": {"local": "MG-010 e Bairro Cruzeiro", "descricao": "Remoção de entulho e limpeza", "solicitante": "", "orgao": "A confirmar", "entrada": null, "canal": "Grupo Move/Sinarco", "equipe": "", "prioridade": "", "status": "Concluída", "inicio": "2026-11-06", "previsao": null, "termino": "2026-11-06", "obs": "", "recursos": ""}}, "eventos": {"S001": {"frente": "D-001", "data": "2026-11-17", "tipo": "Pedido", "motivo": "", "quem": "Gleidstone Soares", "texto": "Chegou por: Grupo Move/Sinarco", "previsao": "", "criadoEm": 1}, "S002": {"frente": "D-002", "data": "2026-10-27", "tipo": "Pedido", "motivo": "", "quem": "Gleidstone Soares", "texto": "Chegou por: Grupo Move/Sinarco", "previsao": "", "criadoEm": 2}, "S003": {"frente": "D-002", "data": "2026-11-13", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 3}, "S004": {"frente": "D-003", "data": "2026-10-28", "tipo": "Pedido", "motivo": "", "quem": "Patrick (Move)", "texto": "Chegou por: Grupo Move/Sinarco", "previsao": "", "criadoEm": 4}, "S005": {"frente": "D-003", "data": "2026-10-28", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 5}, "S006": {"frente": "D-004", "data": "2026-10-23", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 6}, "S007": {"frente": "D-004", "data": "2026-11-09", "tipo": "Parada", "motivo": "Chuva", "quem": "", "texto": "Período chuvoso", "previsao": "", "criadoEm": 7}, "S008": {"frente": "D-004", "data": "2026-11-12", "tipo": "Retomada", "motivo": "", "quem": "", "texto": "Frente voltou", "previsao": "", "criadoEm": 8}, "S009": {"frente": "D-004", "data": "2026-11-16", "tipo": "Parada", "motivo": "Chuva", "quem": "", "texto": "Parou de novo por chuva", "previsao": "", "criadoEm": 9}, "S010": {"frente": "D-004", "data": "2026-11-17", "tipo": "Retomada", "motivo": "", "quem": "", "texto": "Frente voltou", "previsao": "", "criadoEm": 10}, "S011": {"frente": "D-005", "data": "2026-09-23", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 11}, "S012": {"frente": "D-006", "data": "2026-11-11", "tipo": "Pedido", "motivo": "", "quem": "Gleidstone Soares / Wesley Move", "texto": "Chegou por: Grupo Move/Sinarco", "previsao": "", "criadoEm": 12}, "S013": {"frente": "D-006", "data": "2026-11-17", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 13}, "S014": {"frente": "D-006", "data": "2026-11-11", "tipo": "Previsão", "motivo": "", "quem": "", "texto": "Previsão combinada", "previsao": "2026-11-19", "criadoEm": 14}, "S015": {"frente": "D-007", "data": "2026-11-16", "tipo": "Pedido", "motivo": "", "quem": "Wesley Move", "texto": "Chegou por: Grupo Move/Sinarco", "previsao": "", "criadoEm": 15}, "S016": {"frente": "D-007", "data": "2026-11-17", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 16}, "S017": {"frente": "D-008", "data": "2026-09-23", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 17}, "S018": {"frente": "D-008", "data": "2026-11-09", "tipo": "Parada", "motivo": "", "quem": "", "texto": "Saiu da programação (motivo não registrado)", "previsao": "", "criadoEm": 18}, "S019": {"frente": "D-008", "data": "2026-11-13", "tipo": "Retomada", "motivo": "", "quem": "", "texto": "Frente voltou", "previsao": "", "criadoEm": 19}, "S020": {"frente": "D-009", "data": "2026-09-23", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 20}, "S021": {"frente": "D-010", "data": "2026-09-29", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 21}, "S022": {"frente": "D-011", "data": "2026-11-12", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 22}, "S023": {"frente": "D-012", "data": "2026-10-27", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 23}, "S024": {"frente": "D-012", "data": "2026-10-28", "tipo": "Parada", "motivo": "Pedido da fiscalização", "quem": "Patrick (Move)", "texto": "Equipe deslocada para levantamento de BL", "previsao": "", "criadoEm": 24}, "S025": {"frente": "D-012", "data": "2026-11-03", "tipo": "Retomada", "motivo": "", "quem": "", "texto": "Frente voltou", "previsao": "", "criadoEm": 25}, "S026": {"frente": "D-013", "data": "2026-10-26", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 26}, "S027": {"frente": "D-013", "data": "2026-11-09", "tipo": "Parada", "motivo": "", "quem": "", "texto": "Pausa de 09 a 12/11 (confirmar motivo)", "previsao": "", "criadoEm": 27}, "S028": {"frente": "D-013", "data": "2026-11-13", "tipo": "Retomada", "motivo": "", "quem": "", "texto": "Frente voltou", "previsao": "", "criadoEm": 28}, "S029": {"frente": "D-013", "data": "2026-11-16", "tipo": "Parada", "motivo": "", "quem": "", "texto": "Saiu da programação em 16/11 (confirmar motivo)", "previsao": "", "criadoEm": 29}, "S030": {"frente": "D-014", "data": "2026-11-04", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 30}, "S031": {"frente": "D-014", "data": "2026-11-12", "tipo": "Parada", "motivo": "", "quem": "", "texto": "Saiu da programação em 12/11 (confirmar motivo)", "previsao": "", "criadoEm": 31}, "S032": {"frente": "D-015", "data": "2026-11-17", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 32}, "S033": {"frente": "D-016", "data": "2026-10-13", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 33}, "S034": {"frente": "D-016", "data": "2026-10-28", "tipo": "Parada", "motivo": "Prioridade para outra frente", "quem": "Move (fiscalização)", "texto": "Contenção parou para a equipe começar o calçamento de Itacolomi", "previsao": "", "criadoEm": 34}, "S035": {"frente": "D-016", "data": "2026-11-10", "tipo": "Retomada", "motivo": "", "quem": "", "texto": "Frente voltou", "previsao": "", "criadoEm": 35}, "S036": {"frente": "D-016", "data": "2026-11-12", "tipo": "Concluída", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 36}, "S037": {"frente": "D-017", "data": "2026-11-05", "tipo": "Pedido", "motivo": "", "quem": "Gleidstone Soares", "texto": "Chegou por: Grupo Move/Sinarco", "previsao": "", "criadoEm": 37}, "S038": {"frente": "D-017", "data": "2026-11-05", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 38}, "S039": {"frente": "D-017", "data": "2026-11-06", "tipo": "Concluída", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 39}, "S040": {"frente": "D-018", "data": "2026-11-05", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 40}, "S041": {"frente": "D-018", "data": "2026-11-05", "tipo": "Parada", "motivo": "Prioridade para outra frente", "quem": "Gleidstone Soares (Move)", "texto": "Equipe saiu para o entorno do Santuário (urgência da inauguração). Data de volta estimada, ajustar se precisar.", "previsao": "", "criadoEm": 41}, "S042": {"frente": "D-018", "data": "2026-11-07", "tipo": "Retomada", "motivo": "", "quem": "", "texto": "Frente voltou", "previsao": "", "criadoEm": 42}, "S043": {"frente": "D-018", "data": "2026-11-13", "tipo": "Concluída", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 43}, "S044": {"frente": "D-019", "data": "2026-11-03", "tipo": "Pedido", "motivo": "", "quem": "Wesley Move", "texto": "Chegou por: Grupo Move/Sinarco", "previsao": "", "criadoEm": 44}, "S045": {"frente": "D-019", "data": "2026-11-04", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 45}, "S046": {"frente": "D-019", "data": "2026-11-04", "tipo": "Concluída", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 46}, "S047": {"frente": "D-020", "data": "2026-11-03", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 47}, "S048": {"frente": "D-020", "data": "2026-11-03", "tipo": "Concluída", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 48}, "S049": {"frente": "D-021", "data": "2026-11-03", "tipo": "Pedido", "motivo": "", "quem": "Wesley Move", "texto": "Chegou por: Grupo Move/Sinarco", "previsao": "", "criadoEm": 49}, "S050": {"frente": "D-021", "data": "2026-11-04", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 50}, "S051": {"frente": "D-021", "data": "2026-11-05", "tipo": "Concluída", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 51}, "S052": {"frente": "D-022", "data": "2026-11-06", "tipo": "Pedido", "motivo": "", "quem": "Gleidstone Soares", "texto": "Chegou por: Grupo Move/Sinarco", "previsao": "", "criadoEm": 52}, "S053": {"frente": "D-022", "data": "2026-11-06", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 53}, "S054": {"frente": "D-022", "data": "2026-11-13", "tipo": "Concluída", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 54}, "S055": {"frente": "D-023", "data": "2026-11-06", "tipo": "Pedido", "motivo": "", "quem": "Gleidstone Soares", "texto": "Chegou por: Grupo Move/Sinarco", "previsao": "", "criadoEm": 55}, "S056": {"frente": "D-023", "data": "2026-11-16", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 56}, "S057": {"frente": "D-023", "data": "2026-11-17", "tipo": "Concluída", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 57}, "S058": {"frente": "D-024", "data": "2026-11-04", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 58}, "S059": {"frente": "D-024", "data": "2026-11-05", "tipo": "Concluída", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 59}, "S060": {"frente": "D-025", "data": "2026-11-06", "tipo": "Início", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 60}, "S061": {"frente": "D-025", "data": "2026-11-06", "tipo": "Concluída", "motivo": "", "quem": "", "texto": "", "previsao": "", "criadoEm": 61}}, "pendencias": {"P-01": {"pedido": "Limpeza e execução de cerca – \"Colocar na programação\"", "quem": "Patrick (Move)", "data": "2026-11-17", "local": "Pino: -19.03746, -43.41915", "resposta": "", "situacao": "Aberta", "obs": "Não entrou na programação de 18/11."}, "P-02": {"pedido": "OTB em 3 pontos (croquis 1, 2 e 3)", "quem": "Wesley Move", "data": "2026-11-11", "local": "Rua Prof. Juvêncio Miranda; Rua Desembargador César Silveira; Travessa Costa Chiab (frente à rodoviária)", "resposta": "", "situacao": "Aberta", "obs": "Wesley sugeriu: uma equipe nesses pontos e outra no Bougainville."}, "P-03": {"pedido": "OTB em ponto perigoso na pista (Wesley: \"bem perigoso\"; há outro menor perto de outra ponte)", "quem": "Gleidstone Soares", "data": "2026-11-12", "local": "Pino: -18.95380, -43.43948", "resposta": "Erick: \"vamos encaixar nas demandas que o Wesley vai passando\"", "situacao": "Respondida", "obs": "Sem data definida. Wesley não sabia se a pista é responsabilidade do contrato."}, "P-04": {"pedido": "\"Fazer similar aqui\" (foto) – serviço não descrito", "quem": "Gleidstone Soares", "data": "2026-11-14", "local": "Pino: -19.03010, -43.42744", "resposta": "", "situacao": "Aberta", "obs": "Pedir descrição do serviço."}, "P-05": {"pedido": "Guarda-corpo do cemitério – \"nenhuma data ainda?\"", "quem": "[telefone oculto]", "data": "2026-11-04", "local": "Cemitério", "resposta": "Erick: depois de terminar o aeroporto / Itacolomi", "situacao": "Respondida", "obs": "Sem data definida."}, "P-06": {"pedido": "Escavação no pátio de automóveis ao lado da ETE da Copasa", "quem": "Gleidstone Soares", "data": "2026-11-13", "local": "Ao lado da ETE da Copasa", "resposta": "Erick 16/11: solo encharcado, caminhões não transitam", "situacao": "Respondida", "obs": "Aguardando o solo secar. Definir data de retorno."}, "P-07": {"pedido": "Equipe exclusiva para OTB, limpeza e troca de grelhas e demandas da Ouvidoria (\"registrado em ata\")", "quem": "Patrick / Gleidstone / Wesley", "data": "2026-10-08", "local": "Sede e distritos", "resposta": "Richard 08/10: montar na semana seguinte, até chegarem novas contratações", "situacao": "Respondida", "obs": "Confirmar se a equipe foi montada."}, "P-08": {"pedido": "Recomposição das valas com capa asfáltica nas ruas onde foram instaladas redes de água e esgoto", "quem": "Gleidstone Soares", "data": "2026-10-07", "local": "Ruas com obras da Copasa", "resposta": "", "situacao": "Aberta", "obs": "Sem resposta na conversa."}, "P-09": {"pedido": "Tapume do aeroporto: falta instalar rede de água e esgoto", "quem": "Erick Sinarco", "data": "2026-11-03", "local": "Aeroporto – atrás da Sinarco", "resposta": "Combinado com o Gleidstone", "situacao": "Aberta", "obs": "Portão instalado em 17/11. Ver D-012."}, "P-10": {"pedido": "\"Agora tem programação do container?\"", "quem": "Gleidstone Soares", "data": "2026-11-04", "local": "", "resposta": "", "situacao": "Aberta", "obs": "Sem resposta na conversa."}, "P-11": {"pedido": "Pino de localização enviado sem descrição", "quem": "Gleidstone Soares", "data": "2026-11-05", "local": "Pino: -19.02857, -43.41765", "resposta": "Maria: avaliar no local e definir prioridade com a fiscalização", "situacao": "Respondida", "obs": "Sem desfecho registrado."}, "P-12": {"pedido": "4 grelhas para o pessoal de Tapera", "quem": "Gleidstone Soares", "data": "2026-11-17", "local": "Pátio da Sinarco", "resposta": "Erick: pode retirar no pátio", "situacao": "Fechada", "obs": ""}}};
+(function(){const S=window.__SNAP__;const snap=c=>{const docs=Object.keys(S[c]||{}).map(id=>({id,exists:true,data:()=>S[c][id],metadata:{fromCache:false,hasPendingWrites:false}}));return {docs,size:docs.length,empty:!docs.length,metadata:{fromCache:false,hasPendingWrites:false},docChanges:()=>[]};};const ro=()=>Promise.reject({code:"invalid_argument",message:"somente leitura"});const db={collection:c=>({onSnapshot:n=>{setTimeout(()=>n(snap(c)),0);return()=>{}},doc:()=>({set:ro,update:ro,delete:ro})})};window.claude={use:async n=>n==="db"?db:n==="user"?{can:()=>false,isOwner:()=>false,canEdit:()=>false}:null};})();
+</script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Frentes de serviço · Contrato 425</h1>
+      <div class="sub">Sinarco · fiscalização Move · Prefeitura de Conceição do Mato Dentro · <span id="asof">carregando…</span></div>
+    </div>
+  </header>
+  <div class="banner" id="banner" hidden></div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t-painel" aria-selected="true" aria-controls="painel" type="button">Painel</button>
+    <button class="tab" role="tab" id="t-lanc" aria-selected="false" aria-controls="lancamentos" type="button">Lançamentos</button>
+  </div>
+
+  <div class="view" id="painel" role="tabpanel" aria-labelledby="t-painel">
+    <section class="tiles" id="tiles" aria-label="Resumo por situação"></section>
+    <div class="bar" role="group" aria-label="Filtros">
+      <input type="search" id="q" placeholder="Buscar rua, serviço ou equipe…" aria-label="Buscar">
+      <label for="fEquipe">Equipe</label>
+      <select id="fEquipe"><option value="">Todas</option></select>
+      <label for="fParada">Paradas</label>
+      <select id="fParada"><option value="">Todas as frentes</option><option value="agora">Só as paradas agora</option><option value="ja">Que já pararam alguma vez</option></select>
+      <label for="fGrupo">Agrupar por</label>
+      <select id="fGrupo"><option value="situacao">Situação</option><option value="equipe">Equipe</option><option value="nenhum">Sem agrupar</option></select>
+      <button class="btn" id="limpar" type="button">Limpar filtros</button>
+    </div>
+    <section class="card" id="linha-do-tempo">
+      <h2>Linha do tempo <small id="gcount"></small></h2>
+      <div class="legendbox" aria-label="Legenda da linha do tempo">
+        <span class="k"><span class="sw" style="background:var(--run)"></span>Em andamento</span>
+        <span class="k"><span class="sw" style="background:var(--plan)"></span>Programada</span>
+        <span class="k"><span class="sw" style="background:repeating-linear-gradient(135deg,var(--pause) 0 5px,color-mix(in srgb,var(--pause) 45%,var(--surface)) 5px 10px)"></span>Parada (motivo escrito na barra)</span>
+        <span class="k"><span class="sw" style="background:var(--done)"></span>Concluída</span>
+        <span class="k"><span class="sw" style="background:linear-gradient(90deg,var(--run) 40%,transparent)"></span>Sem previsão de término</span>
+        <span class="k"><span class="sw" style="background:color-mix(in srgb,var(--run) 30%,var(--surface));border:1.5px dashed var(--run)"></span>Previsto (ainda vai acontecer)</span>
+        <span class="k"><span class="sw diamond"></span>Data do pedido</span>
+        <span class="k"><span class="sw todaysw"></span>Hoje</span>
+      </div>
+      <div class="gantt" id="gantt"></div>
+    </section>
+    <div class="two">
+      <section class="card" id="resumo"><h2>Situação das frentes</h2><div class="donut" id="donut"></div></section>
+      <section class="card" id="pendencias"><h2>Pendências da Move <small id="pcount"></small></h2><div class="plist" id="plist"></div></section>
+    </div>
+    <p class="foot">Toque em uma frente para ver o histórico completo dela. Paradas, retomadas e novas frentes são lançadas na aba Lançamentos.</p>
+  </div>
+
+  <div class="view" id="lancamentos" role="tabpanel" aria-labelledby="t-lanc" hidden>
+    <div class="forms">
+      <form class="card" id="formEv" novalidate>
+        <h2>Registrar ocorrência numa frente <small>parou, voltou, chuva, falta de material…</small></h2>
+        <div class="fgrid">
+          <label class="full" for="evFrente">Frente<select id="evFrente" required></select></label>
+          <label for="evData">Data<input type="date" id="evData" required></label>
+          <label for="evTipo">O que aconteceu<select id="evTipo" required></select></label>
+          <label for="evMotivo">Motivo<select id="evMotivo"></select></label>
+          <label for="evQuem">Quem pediu ou decidiu<input id="evQuem" list="pessoas" placeholder="ex.: Patrick (Move)"></label>
+          <label for="evPrev" id="lbPrev">Previsão de término<input type="date" id="evPrev"></label>
+          <label class="full" for="evTexto">Descrição<textarea id="evTexto" placeholder="ex.: Patrick parou a frente porque priorizou o calçamento de Itacolomi"></textarea></label>
+        </div>
+        <div class="factions"><button class="btn primary" type="submit">Salvar ocorrência</button><span class="msg" id="evMsg" role="status"></span></div>
+      </form>
+
+      <form class="card" id="formFr" novalidate>
+        <h2>Nova frente ou demanda <small>quando a demanda chega</small></h2>
+        <div class="fgrid">
+          <label class="full" for="frLocal">Local (rua, bairro, distrito)<input id="frLocal" required></label>
+          <label class="full" for="frDesc">Serviço<input id="frDesc" required placeholder="ex.: OTB, meio-fio e drenagem, roçada…"></label>
+          <label for="frQuem">Quem pediu<input id="frQuem" list="pessoas"></label>
+          <label for="frOrgao">Órgão<select id="frOrgao"><option>Move (fiscalização)</option><option>Prefeitura</option><option>Sinarco</option><option>Comunidade</option><option>A confirmar</option></select></label>
+          <label for="frData">Data do pedido<input type="date" id="frData"></label>
+          <label for="frCanal">Como chegou<select id="frCanal"><option>Grupo Move/Sinarco</option><option>WhatsApp privado</option><option>Ligação</option><option>Reunião semanal</option><option>Ouvidoria</option><option>Visita em campo</option></select></label>
+          <label for="frEquipe">Equipe / encarregado<input id="frEquipe" list="equipesList"></label>
+          <label for="frPrio">Prioridade<select id="frPrio"><option value="">A definir</option><option>1 - Urgente</option><option>2 - Alta</option><option>3 - Média</option><option>4 - Baixa</option></select></label>
+          <label for="frStatus">Situação<select id="frStatus"><option>Nova</option><option>Em avaliação</option><option>Programada</option><option>Em execução</option></select></label>
+          <label for="frInicio">Início (se já tem)<input type="date" id="frInicio"></label>
+          <label for="frPrev">Previsão de término<input type="date" id="frPrev"></label>
+          <label for="frRec">Recursos<select id="frRec"><option value="">A avaliar</option><option>Tem tudo</option><option>Falta algo</option></select></label>
+          <label class="full" for="frObs">Recursos, material, observações<textarea id="frObs"></textarea></label>
+        </div>
+        <div class="factions"><button class="btn primary" type="submit">Salvar frente</button><span class="msg" id="frMsg" role="status"></span></div>
+      </form>
+
+      <form class="card" id="formPd" novalidate>
+        <h2>Nova pendência <small>pedido que ainda não virou frente</small></h2>
+        <div class="fgrid">
+          <label class="full" for="pdPedido">Pedido<input id="pdPedido" required></label>
+          <label for="pdQuem">Quem pediu<input id="pdQuem" list="pessoas"></label>
+          <label for="pdData">Data<input type="date" id="pdData"></label>
+          <label class="full" for="pdLocal">Local<input id="pdLocal"></label>
+          <label class="full" for="pdResp">Resposta dada / combinado<input id="pdResp"></label>
+        </div>
+        <div class="factions"><button class="btn primary" type="submit">Salvar pendência</button><span class="msg" id="pdMsg" role="status"></span></div>
+      </form>
+    </div>
+    <section class="card" id="ultimos">
+      <h2>Últimos lançamentos <small>as 30 mais recentes pela data da ocorrência</small></h2>
+      <div class="loglist" id="loglist"></div>
+    </section>
+  </div>
+</div>
+
+<datalist id="pessoas"><option>Gleidstone Soares (Move)</option><option>Patrick (Move)</option><option>Wesley (Move)</option><option>Ana (Move)</option><option>Prefeitura</option><option>Maria (Sinarco)</option><option>Erick (Sinarco)</option><option>Morador / Ouvidoria</option></datalist>
+<datalist id="equipesList"></datalist>
+
+<div id="tip" role="tooltip"></div>
+<dialog id="det" aria-labelledby="dtitle">
+  <div class="dhead"><div><div class="sub" id="did"></div><h3 id="dtitle"></h3></div><button class="btn" id="fechar" type="button">Fechar</button></div>
+  <dl class="dbody" id="dbody"></dl>
+</dialog>
+<script>
+const MESES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const DAY=864e5;
+const d = s => s ? new Date(s+'T12:00:00') : null;
+const fmt = x => x ? String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0') : '—';
+const iso = x => x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+const TODAY = (()=>{const t=new Date();t.setHours(12,0,0,0);return t;})();
+const $ = id => document.getElementById(id);
+
+const TIPOS=['Parada','Retomada','Início','Previsão','Concluída','Nota','Pedido'];
+const TIPO_LABEL={Parada:'Frente parou',Retomada:'Frente voltou',Início:'Frente começou',Previsão:'Nova previsão de término',Concluída:'Frente concluída',Nota:'Anotação',Pedido:'Pedido recebido'};
+const TIPO_COR={Parada:'var(--pause)',Retomada:'var(--run)',Início:'var(--run)',Previsão:'var(--plan)',Concluída:'var(--done)',Nota:'var(--muted)',Pedido:'var(--ink)'};
+const MOTIVOS=['Prioridade para outra frente','Chuva','Falta de material','Falta de equipamento','Falta de equipe','Pedido da fiscalização','Liberação ou terceiros','Outro'];
+
+const SIT = {
+  andamento:{label:'Em andamento', c:'var(--run)', hint:'frentes trabalhando'},
+  parada:{label:'Paradas', c:'var(--pause)', hint:'pausadas, ver motivo'},
+  pendente:{label:'Pendentes', c:'var(--pend)', hint:'programadas e pedidos sem resposta'},
+  concluida:{label:'Concluídas', c:'var(--done)', hint:'já entregues'}
+};
+
+let FR=[], EV=[], PD=[];      // dados crus do banco
+let dem=[], pen=[], penAbertas=[];
+const loaded={frentes:false,eventos:false,pendencias:false};
+let db=null, canWrite=null;
+
+const state={sit:null,q:'',equipe:'',parada:'',grupo:'situacao'};
+try{ const s=JSON.parse(localStorage.getItem('painel425')||'{}'); if(s.grupo) state.grupo=s.grupo; }catch(e){}
+$('fGrupo').value=state.grupo;
+
+function el(tag,attrs,...kids){const n=document.createElement(tag);for(const k in attrs||{}){if(k==='style')n.style.cssText=attrs[k];else if(k.startsWith('on'))n.addEventListener(k.slice(2),attrs[k]);else if(attrs[k]!=null&&attrs[k]!==false)n.setAttribute(k,attrs[k]);}kids.flat().forEach(c=>c!=null&&c!==false&&n.append(c.nodeType?c:document.createTextNode(c)));return n;}
+const str = v => typeof v==='string'?v:(v==null?'':String(v));
+const isoOk = v => typeof v==='string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+
+/* ---------- derivação: histórico → situação, paradas ---------- */
+function derive(){
+  const byFr={};
+  for(const e of EV){ (byFr[e.frente]=byFr[e.frente]||[]).push(e); }
+  dem = FR.map(f=>{
+    const evs=(byFr[f.id]||[]).slice().sort((a,b)=>(a.data<b.data?-1:a.data>b.data?1:(a.criadoEm||0)-(b.criadoEm||0)));
+    let status=f.status||'Nova', inicio=f.inicio, termino=f.termino, previsao=f.previsao;
+    const pausas=[]; let aberta=null;
+    for(const e of evs){
+      if(e.tipo==='Início'){ if(!inicio||e.data<inicio) inicio=e.data; }
+      if(e.tipo==='Parada'){ if(!aberta){ aberta={a:e.data,motivo:e.motivo,quem:e.quem,texto:e.texto}; } status='Pausada'; }
+      if(e.tipo==='Retomada'||e.tipo==='Início'||e.tipo==='Concluída'){
+        if(aberta){ aberta.b=e.data; pausas.push(aberta); aberta=null; }
+        status = e.tipo==='Concluída'?'Concluída':'Em execução';
+        if(e.tipo==='Retomada' && !inicio) inicio=e.data;
+      }
+      if(e.tipo==='Concluída') termino=e.data;
+      if(e.tipo==='Previsão' && e.previsao) previsao=e.previsao;
+    }
+    if(aberta) pausas.push(aberta);
+    if(status==='Concluída'&&!termino) termino=null;
+    const x={...f,status,inicio,termino,previsao,pausas,eventos:evs};
+    x.sit = status==='Em execução'?'andamento':status==='Pausada'?'parada':status==='Concluída'?'concluida':'pendente';
+    x.paradaAgora = x.sit==='parada' ? pausas[pausas.length-1] : null;
+    return x;
+  });
+  pen = PD.slice(); penAbertas = pen.filter(p=>p.situacao!=='Fechada'&&p.situacao!=='Virou demanda');
+}
+
+function filtered(){
+  const q=state.q.trim().toLowerCase();
+  return dem.filter(x=>(!state.sit||x.sit===state.sit)&&(!state.equipe||x.equipe===state.equipe)
+    &&(!state.parada||(state.parada==='agora'?x.sit==='parada':x.pausas.length>0))
+    &&(!q||[x.local,x.descricao,x.equipe,x.solicitante,x.id].join(' ').toLowerCase().includes(q)));
+}
+
+/* ---------- tiles ---------- */
+function renderTiles(){
+  const t=$('tiles'); t.textContent='';
+  for(const k of ['andamento','parada','pendente','concluida']){
+    const nf=dem.filter(x=>x.sit===k).length;
+    const n=nf+(k==='pendente'?penAbertas.length:0);
+    let hint=SIT[k].hint;
+    if(k==='pendente') hint=nf+(nf===1?' frente programada':' frentes programadas')+' + '+penAbertas.length+' pedidos sem solução';
+    if(k==='parada'){ const m={}; dem.filter(x=>x.paradaAgora).forEach(x=>{const mm=x.paradaAgora.motivo||'motivo a confirmar';m[mm]=(m[mm]||0)+1;}); const s=Object.entries(m).map(([a,b])=>b+' '+a.toLowerCase()).join(', '); if(s) hint=s; }
+    t.appendChild(el('button',{class:'tile',type:'button',style:'--c:'+SIT[k].c,'aria-pressed':String(state.sit===k),onclick:()=>{state.sit=state.sit===k?null:k;render();}},
+      el('span',{class:'n'},String(n)), el('span',{class:'l'},SIT[k].label), el('span',{class:'h'},hint)));
+  }
+}
+
+/* ---------- donut ---------- */
+function renderDonut(){
+  const box=$('donut'); box.textContent='';
+  const keys=['andamento','parada','pendente','concluida'];
+  const vals=keys.map(k=>dem.filter(x=>x.sit===k).length);
+  const tot=vals.reduce((a,b)=>a+b,0); const R=46,C=2*Math.PI*R; let off=0;
+  const ns='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(ns,'svg'); svg.setAttribute('width','120');svg.setAttribute('height','120');svg.setAttribute('viewBox','0 0 120 120');svg.setAttribute('role','img');svg.setAttribute('aria-label','Frentes por situação');
+  const bgc=document.createElementNS(ns,'circle');bgc.setAttribute('cx','60');bgc.setAttribute('cy','60');bgc.setAttribute('r',R);bgc.setAttribute('fill','none');bgc.setAttribute('stroke-width','18');bgc.style.stroke='var(--line)';svg.appendChild(bgc);
+  keys.forEach((k,i)=>{ if(!vals[i])return; const c=document.createElementNS(ns,'circle');
+    c.setAttribute('cx','60');c.setAttribute('cy','60');c.setAttribute('r',R);c.setAttribute('fill','none');c.setAttribute('stroke-width','18');
+    c.style.stroke=SIT[k].c; const len=vals[i]/tot*C; c.setAttribute('stroke-dasharray',len+' '+(C-len)); c.setAttribute('stroke-dashoffset',-off); c.setAttribute('transform','rotate(-90 60 60)');
+    c.style.cursor='pointer'; c.addEventListener('click',()=>{state.sit=state.sit===k?null:k;render();}); off+=len; svg.appendChild(c);});
+  const tx=document.createElementNS(ns,'text');tx.setAttribute('x','60');tx.setAttribute('y','58');tx.setAttribute('text-anchor','middle');tx.style.cssText='font:700 26px var(--display);fill:var(--ink)';tx.textContent=tot;svg.appendChild(tx);
+  const tx2=document.createElementNS(ns,'text');tx2.setAttribute('x','60');tx2.setAttribute('y','76');tx2.setAttribute('text-anchor','middle');tx2.style.cssText='font:12px var(--body);fill:var(--muted)';tx2.textContent='frentes';svg.appendChild(tx2);
+  box.appendChild(svg);
+  const dl=el('div',{class:'dl'}); keys.forEach((k,i)=>dl.appendChild(el('div',{},el('span',{style:'background:'+SIT[k].c}),SIT[k].label+': ',el('b',{},String(vals[i])))));
+  const semPrev=dem.filter(x=>(x.sit==='andamento'||x.sit==='parada')&&!x.previsao).length;
+  const jaPararam=dem.filter(x=>x.pausas.length).length;
+  dl.appendChild(el('div',{style:'margin-top:6px;color:var(--muted);font-size:12px'},semPrev+' frentes ativas sem previsão de término'));
+  dl.appendChild(el('div',{style:'color:var(--muted);font-size:12px'},jaPararam+' frentes já pararam alguma vez'));
+  box.appendChild(dl);
+}
+
+/* ---------- linha do tempo ---------- */
+function monday(x){const y=new Date(x);const k=(y.getDay()+6)%7;y.setDate(y.getDate()-k);y.setHours(12,0,0,0);return y;}
+function renderGantt(){
+  const g=$('gantt'); g.textContent='';
+  const rows=filtered();
+  $('gcount').textContent=rows.length+' de '+dem.length+' frentes';
+  if(!dem.length){g.appendChild(el('div',{class:'empty'},loaded.frentes?'Nenhuma frente lançada ainda. Use a aba Lançamentos para cadastrar a primeira.':'Carregando as frentes…'));return;}
+  if(!rows.length){g.appendChild(el('div',{class:'empty'},'Nenhuma frente com esses filtros.'));return;}
+  const starts=rows.map(x=>d(x.inicio)||d(x.entrada)||TODAY);
+  let lo=monday(new Date(Math.min(...starts.map(s=>s.getTime()))));
+  const minLo=new Date(TODAY.getTime()-10*7*DAY); if(lo<minLo) lo=monday(minLo);
+  const ends=rows.map(x=>d(x.termino)||d(x.previsao)||TODAY);
+  let hi=new Date(Math.max(TODAY.getTime()+21*DAY,...ends.map(e=>e.getTime())));
+  hi=new Date(monday(hi).getTime()+7*DAY);
+  const W=g.clientWidth||800; const lw=W<560?150:240;
+  const weeks=Math.round((hi-lo)/(7*DAY)); const pxw=Math.max(56,Math.floor((W-lw)/weeks));
+  const tw=weeks*pxw; g.style.setProperty('--lw',lw+'px'); g.style.setProperty('--tw',tw+'px');
+  const X=t=>(t-lo)/(7*DAY)*pxw;
+  const head=el('div',{class:'grow ghead'}, el('div',{class:'glabel'},el('span',{class:'s'},'Frente')), (()=>{const tr=el('div',{class:'gtrack'});
+    for(let i=0;i<weeks;i++){const w=new Date(lo.getTime()+i*7*DAY); tr.appendChild(el('div',{class:'week',style:'left:'+(i*pxw)+'px'})); tr.appendChild(el('div',{class:'wlab',style:'left:'+(i*pxw)+'px'},String(w.getDate()).padStart(2,'0')+' '+MESES[w.getMonth()]));}
+    return tr;})());
+  g.appendChild(head);
+  let groups;
+  if(state.grupo==='situacao') groups=['parada','andamento','pendente','concluida'].map(k=>[SIT[k].label,rows.filter(x=>x.sit===k)]);
+  else if(state.grupo==='equipe') groups=[...new Set(rows.map(x=>x.equipe||'Equipe a definir'))].sort().map(e=>[e,rows.filter(x=>(x.equipe||'Equipe a definir')===e)]);
+  else groups=[[null,rows]];
+  const order={parada:0,andamento:1,pendente:2,concluida:3};
+  for(const [name,list] of groups){
+    if(!list.length) continue;
+    if(name) g.appendChild(el('div',{class:'grp',style:'min-width:'+(lw+tw)+'px'},name+' · '+list.length));
+    list.sort((a,b)=>(order[a.sit]-order[b.sit])||((d(a.inicio)||d(a.entrada)||0)-(d(b.inicio)||d(b.entrada)||0)));
+    for(const x of list) g.appendChild(ganttRow(x,X,weeks,pxw,lo));
+  }
+  const tl=lw+X(TODAY)+pxw/14;
+  g.appendChild(el('div',{class:'today',style:'left:'+tl+'px'}));
+  g.appendChild(el('div',{class:'todaylab',style:'left:'+tl+'px'},'hoje '+fmt(TODAY)));
+  if(lw+tw>W) g.scrollLeft=Math.max(0,X(TODAY)-(W-lw)*0.75);
+}
+function ganttRow(x,X,weeks,pxw,lo){
+  const c=SIT[x.sit].c;
+  let sub=x.descricao+(x.equipe?' · '+x.equipe:'');
+  const stopTxt = x.paradaAgora ? 'Parada desde '+fmt(d(x.paradaAgora.a))+' · '+(x.paradaAgora.motivo||'motivo a confirmar') : null;
+  const lab=el('div',{class:'glabel',style:'--c:'+c,tabindex:'0',role:'button','aria-label':'Histórico de '+x.local},
+    el('span',{class:'dot'}), el('div',{},el('div',{class:'t'},x.local), stopTxt?el('div',{class:'s stop'},stopTxt):null, el('div',{class:'s'},sub)));
+  const tr=el('div',{class:'gtrack'});
+  for(let i=0;i<weeks;i++) tr.appendChild(el('div',{class:'week',style:'left:'+(i*pxw)+'px'}));
+  const ini=d(x.inicio), prev=d(x.previsao), fim=d(x.termino), ent=d(x.entrada);
+  const endX=t=>X(t)+(pxw/7);
+  const add=(a,b,cls,col,tipTxt,label)=>{ if(!a||!b||b<a) return; if(b<lo) return; if(a<lo) a=lo;
+    const left=X(a), w=Math.max(6,endX(b)-left);
+    const div=el('div',{class:'seg '+cls,style:'left:'+left+'px;width:'+w+'px;--c:'+col});
+    if(label && w>46) div.appendChild(el('span',{class:'lbl'},label));
+    div.dataset.tip=tipTxt||''; tr.appendChild(div); };
+  if(ini){
+    let end, col=x.sit==='parada'?'var(--run)':c, open=false;
+    if(x.sit==='concluida') end=fim||prev||ini;
+    else if(x.sit==='pendente'){ end=prev&&prev>ini?prev:ini; col='var(--plan)'; }
+    else { end=TODAY; open=!prev; }
+    // trechos de trabalho entre paradas
+    let cur=ini;
+    const pausas=x.pausas.filter(p=>d(p.a)>=ini);
+    for(const p of pausas){
+      const pa=d(p.a), pb=p.b?new Date(d(p.b).getTime()-DAY):(x.sit==='parada'?TODAY:pa);
+      add(cur,new Date(pa.getTime()-DAY),'',col,'Trabalhando '+fmt(cur)+' a '+fmt(new Date(pa.getTime()-DAY)));
+      const mot=p.motivo||'Motivo a confirmar';
+      add(pa,pb,'pausa'+(p.b?'':' agora'),'var(--pause)','Parada '+fmt(pa)+(p.b?' a '+fmt(pb):' até hoje')+' · '+mot+(p.quem?' · decisão: '+p.quem:'')+(p.texto?'\n'+p.texto:''),mot);
+      cur=p.b?d(p.b):null; if(!cur) break;
+    }
+    if(cur && end>=cur){
+      const lastOpen = open && x.sit==='andamento';
+      add(cur,end,lastOpen?'aberto':'',col,(x.sit==='concluida'?'Concluída em '+fmt(fim||end):x.sit==='pendente'?'Programada':'Em andamento'+(lastOpen?' · sem previsão de término':'')));
+    }
+    if(prev && prev>TODAY && (x.sit==='andamento'||x.sit==='parada')) add(new Date(TODAY.getTime()+DAY),prev,'prev',x.sit==='parada'?'var(--pause)':'var(--run)','Previsão de término '+fmt(prev));
+  } else if(prev && x.sit==='pendente'){
+    add(prev,prev,'prev','var(--plan)','Previsão '+fmt(prev));
+  }
+  if(ent && ent>=lo) tr.appendChild(el('div',{class:'pmark',style:'left:'+(X(ent)+pxw/14)+'px'}));
+  const open=()=>showDet(x.id);
+  lab.addEventListener('click',open); tr.addEventListener('click',open);
+  lab.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
+  const tipTxt=()=>x.local+' – '+x.descricao+'\n'+x.status+(ent?' · pedido '+fmt(ent):'')+(ini?' · início '+fmt(ini):'')+' · '+(fim?'concluída '+fmt(fim):(prev?'previsão '+fmt(prev):'sem previsão de término'))+(x.pausas.length?'\n'+x.pausas.length+(x.pausas.length>1?' paradas':' parada')+' no histórico':'');
+  tr.addEventListener('mousemove',e=>{const t=e.target.closest('.seg');tip(e,t&&t.dataset.tip?x.local+'\n'+t.dataset.tip:tipTxt());});
+  tr.addEventListener('mouseleave',hideTip);
+  return el('div',{class:'grow'+(x.sit==='parada'?' stopped':'')},lab,tr);
+}
+
+/* ---------- pendências ---------- */
+const PSIT={Aberta:['var(--risk)','color-mix(in srgb,var(--risk) 14%,var(--surface))'],Respondida:['var(--pause)','var(--pausebg)'],'Virou demanda':['var(--plan)','color-mix(in srgb,var(--plan) 14%,var(--surface))'],Fechada:['var(--done)','var(--donebg)']};
+function renderPend(){
+  const box=$('plist'); box.textContent='';
+  const q=state.q.trim().toLowerCase();
+  let list=pen.filter(p=>!q||[p.pedido,p.local,p.quem,p.id].join(' ').toLowerCase().includes(q));
+  if(state.sit==='concluida') list=list.filter(p=>p.situacao==='Fechada');
+  else if(state.sit) list=list.filter(p=>p.situacao!=='Fechada');
+  const rank={Aberta:0,Respondida:1,'Virou demanda':2,Fechada:3};
+  list.sort((a,b)=>((rank[a.situacao]??0)-(rank[b.situacao]??0))||((d(a.data)||0)-(d(b.data)||0)));
+  $('pcount').textContent=penAbertas.length+' sem solução';
+  if(!list.length){box.appendChild(el('div',{class:'empty'},loaded.pendencias?'Nenhuma pendência com esses filtros.':'Carregando…'));return;}
+  for(const p of list){
+    const dias=p.data?Math.round((TODAY-d(p.data))/DAY):0;
+    const ageC=p.situacao==='Fechada'?'var(--muted)':dias>14?'var(--risk)':dias>5?'var(--pause)':'var(--muted)';
+    const [c,bg]=PSIT[p.situacao]||PSIT.Aberta;
+    const it=el('div',{class:'pitem',tabindex:'0',role:'button'},
+      el('div',{class:'top'},el('span',{class:'ped'},p.pedido),el('span',{class:'pill',style:'--c:'+c+';--bgc:'+bg},p.situacao||'Aberta')),
+      el('div',{class:'top'},el('span',{class:'meta'},p.id+' · '+(p.quem||'—')+' · '+fmt(d(p.data))),el('span',{class:'age',style:'--c:'+ageC},dias<=0?'hoje':'há '+dias+' dia'+(dias>1?'s':''))));
+    const open=()=>showPend(p.id);
+    it.addEventListener('click',open); it.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
+    box.appendChild(it);
+  }
+}
+
+/* ---------- detalhe da frente (com histórico) ---------- */
+const dlg=$('det');
+const dextra=el('div',{class:'dbody',style:'display:block;padding-top:0'}); dlg.appendChild(dextra);
+let detOpen=null; // {kind,id}
+function openDlg(){ if(!dlg.open){ if(dlg.showModal) dlg.showModal(); else dlg.setAttribute('open',''); } }
+function head(id,title,pairs){
+  $('did').textContent=id; $('dtitle').textContent=title;
+  const b=$('dbody'); b.textContent='';
+  for(const [k,v] of pairs){ if(!v) continue; b.appendChild(el('dt',{},k)); b.appendChild(el('dd',{},v)); }
+  dextra.textContent='';
+}
+function showDet(id){
+  const x=dem.find(f=>f.id===id); if(!x){ dlg.close&&dlg.close(); return; }
+  detOpen={kind:'f',id};
+  head(x.id+' · '+x.status, x.local, [['Serviço',x.descricao],['Equipe',x.equipe||'A definir'],['Quem pediu',x.solicitante?(x.solicitante+(x.orgao&&x.orgao!=='A confirmar'?' ('+x.orgao+')':'')):''],['Como chegou',x.canal],['Pedido em',x.entrada?fmt(d(x.entrada)):''],['Prioridade',x.prioridade],['Recursos',x.recursos],['Início',x.inicio?fmt(d(x.inicio)):''],['Previsão de término',x.previsao?fmt(d(x.previsao)):(x.sit==='concluida'?'':'Sem previsão – definir com a Move')],['Parada agora',x.paradaAgora?'Desde '+fmt(d(x.paradaAgora.a))+' ('+Math.round((TODAY-d(x.paradaAgora.a))/DAY)+' dias)'+(x.paradaAgora.motivo?' · '+x.paradaAgora.motivo:''):''],['Concluída em',x.termino?fmt(d(x.termino)):''],['Observações',x.obs]]);
+  // histórico
+  const h=el('div',{class:'hist'},el('h4',{},'Histórico da frente'));
+  const evs=x.eventos.slice().reverse();
+  if(!evs.length) h.appendChild(el('div',{class:'empty',style:'padding:6px 0'},'Nenhuma ocorrência registrada ainda.'));
+  for(const e of evs){
+    const can = canWrite!==false && db;
+    const del = can ? delBtn(()=>db.collection('eventos').doc(e._id).delete()) : null;
+    let row;
+    const edt = can ? el('button',{class:'del',type:'button',onclick:ev=>{ev.stopPropagation(); if(row.nextSibling&&row.nextSibling.classList&&row.nextSibling.classList.contains('quick')){row.nextSibling.remove();return;} const qf=quickForm(x,e); qf.hidden=false; row.after(qf); qf.querySelector('select').focus();}},'editar') : null;
+    h.appendChild(row=el('div',{class:'ev',style:'--c:'+(TIPO_COR[e.tipo]||'var(--muted)')},
+      el('span',{class:'dt'},fmt(d(e.data))+(e.data&&e.data.slice(0,4)!==String(TODAY.getFullYear())?'/'+e.data.slice(2,4):'')),
+      el('span',{class:'bul'}),
+      el('div',{class:'tx'},el('b',{},TIPO_LABEL[e.tipo]||e.tipo),
+        e.tipo==='Parada'?' · '+(e.motivo||'motivo a confirmar'):'', e.tipo==='Previsão'&&e.previsao?' para '+fmt(d(e.previsao)):'',
+        e.quem?el('span',{class:'m'},(e.tipo==='Pedido'?'Pedido por ':'Quem pediu/decidiu: ')+e.quem):null,
+        e.texto?el('span',{class:'m'},e.texto):null, edt, del)));
+  }
+  dextra.appendChild(h);
+  if(canWrite!==false && db){
+    const act=el('div',{class:'dact'});
+    const q=quickForm(x);
+    act.appendChild(el('button',{class:'btn primary',type:'button',onclick:()=>{q.hidden=!q.hidden; if(!q.hidden) q.querySelector('select').focus();}},'Registrar ocorrência nesta frente'));
+    act.appendChild(el('button',{class:'btn',type:'button',onclick:()=>editFrente(x)},'Editar dados da frente'));
+    dextra.appendChild(act); dextra.appendChild(q);
+  }
+  openDlg();
+}
+function delBtn(fn){
+  const b=el('button',{class:'del',type:'button'},'apagar');
+  let armed=false,t;
+  b.addEventListener('click',async ev=>{ev.stopPropagation();
+    if(!armed){armed=true;b.textContent='confirmar?';t=setTimeout(()=>{armed=false;b.textContent='apagar';},4000);return;}
+    clearTimeout(t); b.disabled=true; b.textContent='apagando…';
+    try{ await fn(); }catch(e){ b.textContent='não foi possível apagar'; writeErr(e); }
+  });
+  return b;
+}
+function quickForm(x,old){
+  const tipo=el('select',{},TIPOS.filter(t=>old&&old.tipo==='Pedido'||t!=='Pedido').map(t=>el('option',{value:t},TIPO_LABEL[t])));
+  if(x.sit==='parada') tipo.value='Retomada';
+  const data=el('input',{type:'date',value:iso(TODAY)});
+  const mot=el('select',{},el('option',{value:''},'—'),MOTIVOS.map(m=>el('option',{},m)));
+  const quem=el('input',{list:'pessoas',placeholder:'ex.: Patrick (Move)'});
+  const prev=el('input',{type:'date'});
+  const texto=el('input',{placeholder:'O que aconteceu'});
+  if(old){ tipo.value=old.tipo; data.value=old.data; mot.value=old.motivo||''; quem.value=old.quem||''; prev.value=old.previsao||''; texto.value=old.texto||''; }
+  const msg=el('span',{class:'msg',role:'status'});
+  const lMot=el('label',{},'Motivo',mot), lPrev=el('label',{},'Nova previsão',prev);
+  const sync=()=>{lMot.hidden=tipo.value!=='Parada'; lPrev.hidden=tipo.value!=='Previsão';};
+  tipo.addEventListener('change',sync); sync();
+  const btn=el('button',{class:'btn primary',type:'button'},old?'Salvar alteração':'Salvar');
+  const f=el('div',{class:'quick',hidden:''},el('label',{},'O que aconteceu',tipo),el('label',{},'Data',data),lMot,lPrev,el('label',{},'Quem pediu ou decidiu',quem),el('label',{class:'full'},'Descrição',texto),el('div',{class:'full',style:'display:flex;gap:10px;align-items:center'},btn,msg));
+  btn.addEventListener('click',async()=>{
+    if(!data.value){msg.className='msg err';msg.textContent='Informe a data.';return;}
+    if(tipo.value==='Previsão'&&!prev.value){msg.className='msg err';msg.textContent='Informe a nova previsão.';return;}
+    btn.disabled=true; msg.className='msg'; msg.textContent='Salvando…';
+    const body={frente:x.id,data:data.value,tipo:tipo.value,motivo:tipo.value==='Parada'?mot.value:'',quem:quem.value.trim(),texto:texto.value.trim(),previsao:tipo.value==='Previsão'?prev.value:''};
+    let ok;
+    if(old){ try{ await db.collection('eventos').doc(old._id).set({...body,criadoEm:old.criadoEm||Date.now()}); ok=true; }catch(err){ writeErr(err); ok=false; } }
+    else ok=await saveEvent(body);
+    btn.disabled=false;
+    if(ok){ showDet(x.id); return; }
+    if(!ok){msg.className='msg err';msg.textContent='Não foi possível salvar.';}
+  });
+  return f;
+}
+function showPend(id){
+  const p=pen.find(y=>y.id===id); if(!p) return;
+  detOpen={kind:'p',id};
+  head(p.id+' · '+(p.situacao||'Aberta'), p.pedido, [['Quem pediu',p.quem],['Data do pedido',fmt(d(p.data))],['Local',p.local],['Resposta / combinado',p.resposta||'Sem resposta registrada'],['Observação',p.obs]]);
+  if(canWrite!==false && db){
+    const act=el('div',{class:'dact'}); const msg=el('span',{class:'msg',role:'status'});
+    for(const s of ['Aberta','Respondida','Virou demanda','Fechada']){
+      if(s===p.situacao) continue;
+      act.appendChild(el('button',{class:'btn',type:'button',onclick:async ev=>{ev.target.disabled=true;msg.textContent='Salvando…';
+        try{ await db.collection('pendencias').doc(p.id).update({situacao:s}); msg.textContent=''; }catch(e){ msg.className='msg err'; msg.textContent='Não foi possível salvar.'; writeErr(e); ev.target.disabled=false; }}},'Marcar como '+s.toLowerCase()));
+    }
+    act.appendChild(delBtn(()=>db.collection('pendencias').doc(p.id).delete().then(()=>dlg.close())));
+    act.appendChild(msg);
+    dextra.appendChild(act);
+  }
+  openDlg();
+}
+$('fechar').addEventListener('click',()=>{detOpen=null;dlg.close?dlg.close():dlg.removeAttribute('open');});
+dlg.addEventListener('close',()=>{detOpen=null;});
+dlg.addEventListener('click',e=>{if(e.target===dlg) dlg.close();});
+function refreshDet(){ if(!detOpen||!dlg.open) return; const q=dextra.querySelector('.quick:not([hidden])'); if(q && detOpen.kind==='f') return; detOpen.kind==='f'?showDet(detOpen.id):showPend(detOpen.id); }
+
+/* ---------- tooltip ---------- */
+const tipEl=$('tip');
+function tip(e,t){tipEl.textContent='';t.split('\n').forEach((l,i)=>{if(i)tipEl.appendChild(document.createElement('br'));tipEl.appendChild(document.createTextNode(l));});
+  const w=tipEl.offsetWidth,h=tipEl.offsetHeight; let x=e.clientX+14,y=e.clientY+14; if(x+w>innerWidth-8)x=e.clientX-w-14; if(y+h>innerHeight-8)y=e.clientY-h-14; tipEl.style.left=x+'px';tipEl.style.top=y+'px';tipEl.style.opacity=1;}
+function hideTip(){tipEl.style.opacity=0;}
+
+/* ---------- aba lançamentos ---------- */
+function fillSelects(){
+  const sel=$('evFrente'), cur=sel.value; sel.textContent='';
+  sel.appendChild(el('option',{value:''},dem.length?'Escolha a frente…':'Nenhuma frente cadastrada'));
+  const ord={parada:0,andamento:1,pendente:2,concluida:3};
+  dem.slice().sort((a,b)=>(ord[a.sit]-ord[b.sit])||a.local.localeCompare(b.local)).forEach(x=>sel.appendChild(el('option',{value:x.id},x.local+' – '+x.descricao+' ('+x.status+')')));
+  if(cur) sel.value=cur;
+  const fe=$('fEquipe'), cv=fe.value; fe.textContent=''; fe.appendChild(el('option',{value:''},'Todas'));
+  const equipes=[...new Set(dem.map(x=>x.equipe).filter(Boolean))].sort();
+  equipes.forEach(e=>fe.appendChild(el('option',{value:e},e))); fe.value=equipes.includes(cv)?cv:'';
+  const dl=$('equipesList'); dl.textContent=''; equipes.forEach(e=>dl.appendChild(el('option',{},e)));
+}
+(function initForms(){
+  const t=$('evTipo'); TIPOS.forEach(x=>t.appendChild(el('option',{value:x},TIPO_LABEL[x])));
+  const m=$('evMotivo'); m.appendChild(el('option',{value:''},'—')); MOTIVOS.forEach(x=>m.appendChild(el('option',{},x)));
+  const sync=()=>{ $('evMotivo').closest('label').hidden=t.value!=='Parada'; $('lbPrev').hidden=t.value!=='Previsão'; };
+  t.addEventListener('change',sync); sync();
+  $('evData').value=iso(TODAY); $('frData').value=iso(TODAY); $('pdData').value=iso(TODAY);
+})();
+function msg(id,txt,cls){const m=$(id);m.className='msg'+(cls?' '+cls:'');m.textContent=txt;}
+function newId(){return 'E'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function writeErr(e){ if(e&&e.code==='invalid_argument'&&canWrite===null){ canWrite=false; applyPerm(); } }
+async function saveEvent(ev){
+  if(!db) return false;
+  try{ await db.collection('eventos').doc(newId()).set({...ev,criadoEm:Date.now()}); return true; }
+  catch(e){ writeErr(e); return false; }
+}
+$('formEv').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const fr=$('evFrente').value, data=$('evData').value, tipo=$('evTipo').value;
+  if(!fr) return msg('evMsg','Escolha a frente.','err');
+  if(!data) return msg('evMsg','Informe a data.','err');
+  if(tipo==='Previsão'&&!$('evPrev').value) return msg('evMsg','Informe a nova previsão.','err');
+  const b=e.submitter||$('formEv').querySelector('button[type=submit]'); b.disabled=true; msg('evMsg','Salvando…');
+  const ok=await saveEvent({frente:fr,data,tipo,motivo:tipo==='Parada'?$('evMotivo').value:'',quem:$('evQuem').value.trim(),texto:$('evTexto').value.trim(),previsao:tipo==='Previsão'?$('evPrev').value:''});
+  b.disabled=false;
+  if(ok){ msg('evMsg','Ocorrência salva.','ok'); $('evTexto').value=''; $('evQuem').value=''; $('evPrev').value=''; }
+  else msg('evMsg','Não foi possível salvar.','err');
+});
+let editing=null;
+function editFrente(x){
+  editing=x.id; dlg.close();
+  $('frLocal').value=x.local||''; $('frDesc').value=x.descricao||''; $('frQuem').value=x.solicitante||'';
+  setSel('frOrgao',x.orgao); $('frData').value=x.entrada||''; setSel('frCanal',x.canal); $('frEquipe').value=x.equipe||'';
+  setSel('frPrio',x.prioridade); setSel('frStatus',FR.find(f=>f.id===x.id).status); $('frInicio').value=FR.find(f=>f.id===x.id).inicio||''; $('frPrev').value=FR.find(f=>f.id===x.id).previsao||''; setSel('frRec',x.recursos); $('frObs').value=x.obs||'';
+  $('formFr').querySelector('h2').firstChild.textContent='Editar frente '+x.id+' ';
+  $('formFr').querySelector('button[type=submit]').textContent='Salvar alterações';
+  msg('frMsg','');
+  go('lancamentos'); $('formFr').scrollIntoView({behavior:'smooth',block:'start'}); $('frLocal').focus({preventScroll:true});
+}
+function setSel(id,v){const s=$(id); if(v&&![...s.options].some(o=>o.value===v)) s.appendChild(el('option',{},v)); s.value=v||s.options[0].value;}
+function resetFr(){ editing=null; $('formFr').reset(); $('frData').value=iso(TODAY); $('formFr').querySelector('h2').firstChild.textContent='Nova frente ou demanda '; $('formFr').querySelector('button[type=submit]').textContent='Salvar frente'; }
+$('formFr').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const local=$('frLocal').value.trim(), desc=$('frDesc').value.trim();
+  if(!local||!desc) return msg('frMsg','Preencha o local e o serviço.','err');
+  if(!db) return msg('frMsg','O painel está sem conexão com os dados.','err');
+  const status=$('frStatus').value;
+  const body={local,descricao:desc,solicitante:$('frQuem').value.trim(),orgao:$('frOrgao').value,entrada:$('frData').value||null,canal:$('frCanal').value,equipe:$('frEquipe').value.trim(),prioridade:$('frPrio').value,status,inicio:$('frInicio').value||null,previsao:$('frPrev').value||null,recursos:$('frRec').value,obs:$('frObs').value.trim()};
+  const b=$('formFr').querySelector('button[type=submit]'); b.disabled=true; msg('frMsg','Salvando…');
+  try{
+    if(editing){ await db.collection('frentes').doc(editing).update(body); msg('frMsg','Frente '+editing+' atualizada.','ok'); resetFr(); }
+    else{
+      const n=Math.max(0,...FR.map(f=>parseInt(String(f.id).replace(/\D/g,''),10)||0))+1;
+      const id='D-'+String(n).padStart(3,'0');
+      await db.collection('frentes').doc(id).set({...body,termino:null});
+      if(body.entrada) await saveEvent({frente:id,data:body.entrada,tipo:'Pedido',motivo:'',quem:body.solicitante,texto:'Chegou por: '+body.canal,previsao:''});
+      if(status==='Em execução'&&body.inicio) await saveEvent({frente:id,data:body.inicio,tipo:'Início',motivo:'',quem:'',texto:'',previsao:''});
+      msg('frMsg','Frente '+id+' cadastrada. Agora ela aparece no painel.','ok'); resetFr();
+    }
+  }catch(err){ writeErr(err); msg('frMsg','Não foi possível salvar.','err'); }
+  b.disabled=false;
+});
+$('formPd').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const pedido=$('pdPedido').value.trim(); if(!pedido) return msg('pdMsg','Escreva o pedido.','err');
+  if(!db) return msg('pdMsg','O painel está sem conexão com os dados.','err');
+  const n=Math.max(0,...PD.map(p=>parseInt(String(p.id).replace(/\D/g,''),10)||0))+1;
+  const id='P-'+String(n).padStart(2,'0');
+  const b=e.submitter||$('formPd').querySelector('button[type=submit]'); b.disabled=true; msg('pdMsg','Salvando…');
+  try{ await db.collection('pendencias').doc(id).set({pedido,quem:$('pdQuem').value.trim(),data:$('pdData').value||null,local:$('pdLocal').value.trim(),resposta:$('pdResp').value.trim(),situacao:'Aberta',obs:''});
+    msg('pdMsg','Pendência '+id+' salva.','ok'); $('formPd').reset(); $('pdData').value=iso(TODAY); }
+  catch(err){ writeErr(err); msg('pdMsg','Não foi possível salvar.','err'); }
+  b.disabled=false;
+});
+function renderLog(){
+  const box=$('loglist'); box.textContent='';
+  const list=EV.slice().sort((a,b)=>(a.data<b.data?1:a.data>b.data?-1:(b.criadoEm||0)-(a.criadoEm||0))).slice(0,30);
+  if(!list.length){box.appendChild(el('div',{class:'empty'},loaded.eventos?'Nenhum lançamento ainda.':'Carregando…'));return;}
+  for(const e of list){
+    const f=dem.find(x=>x.id===e.frente);
+    box.appendChild(el('div',{class:'logrow'},
+      el('span',{style:'font-variant-numeric:tabular-nums;color:var(--muted)'},fmt(d(e.data))),
+      el('div',{},el('span',{class:'pill',style:'--c:'+(TIPO_COR[e.tipo]||'var(--muted)')+';--bgc:var(--bg);margin-right:6px'},TIPO_LABEL[e.tipo]||e.tipo),
+        el('a',{href:'#',onclick:ev=>{ev.preventDefault();showDet(e.frente);}},f?f.local:e.frente),
+        el('div',{class:'m'},[e.tipo==='Parada'&&e.motivo?e.motivo:'',e.quem,e.texto,e.tipo==='Previsão'&&e.previsao?'nova previsão '+fmt(d(e.previsao)):''].filter(Boolean).join(' · '))),
+      canWrite!==false&&db?delBtn(()=>db.collection('eventos').doc(e._id).delete()):el('span')));
+  }
+}
+
+/* ---------- abas ---------- */
+function go(name){
+  const lanc=name==='lancamentos';
+  $('painel').hidden=lanc; $('lancamentos').hidden=!lanc;
+  $('t-painel').setAttribute('aria-selected',String(!lanc)); $('t-lanc').setAttribute('aria-selected',String(lanc));
+  if(location.hash!==(lanc?'#lancamentos':'') ) history.replaceState(null,'',lanc?'#lancamentos':location.pathname+location.search);
+  if(!lanc) renderGantt();
+}
+$('t-painel').addEventListener('click',()=>go('painel'));
+$('t-lanc').addEventListener('click',()=>go('lancamentos'));
+addEventListener('hashchange',()=>go(location.hash==='#lancamentos'?'lancamentos':'painel'));
+if(window.__PUBLIC__){ document.querySelector('.tabs').style.display='none'; document.querySelector('.foot').textContent='Toque em uma frente para ver o histórico completo dela. Versão pública só de leitura, atualizada automaticamente.'; }
+else if(location.hash==='#lancamentos') go('lancamentos');
+
+/* ---------- filtros ---------- */
+$('q').addEventListener('input',e=>{state.q=e.target.value;render();});
+$('fEquipe').addEventListener('change',e=>{state.equipe=e.target.value;render();});
+$('fParada').addEventListener('change',e=>{state.parada=e.target.value;render();});
+$('fGrupo').addEventListener('change',e=>{state.grupo=e.target.value;try{localStorage.setItem('painel425',JSON.stringify({grupo:state.grupo}));}catch(_){}render();});
+$('limpar').addEventListener('click',()=>{state.sit=null;state.q='';state.equipe='';state.parada='';$('q').value='';$('fEquipe').value='';$('fParada').value='';render();});
+let rt; addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(renderGantt,150);});
+
+function render(){derive();fillSelects();renderTiles();renderDonut();renderGantt();renderPend();renderLog();refreshDet();
+  $('asof').textContent=(loaded.frentes&&loaded.eventos)?(window.__PUBLIC__?'versão pública só de leitura · atualizada em '+window.__PUBLIC__:'atualizado ao vivo · hoje '+fmt(TODAY)+'/'+TODAY.getFullYear()):'carregando…';}
+
+function banner(t){const b=$('banner'); if(!t){b.hidden=true;return;} b.textContent=t; b.hidden=false;}
+function applyPerm(){
+  const ro = canWrite===false || !db;
+  for(const id of ['formEv','formFr','formPd']) $(id).querySelectorAll('input,select,textarea,button').forEach(n=>n.disabled=ro);
+  if(window.__PUBLIC__) banner('');
+  else if(canWrite===false && db) banner('Você está vendo o painel em modo leitura. Para lançar ocorrências, peça à dona do painel acesso de Colaborador ou Editor.');
+  render();
+}
+
+/* ---------- dados ---------- */
+render();
+(async()=>{
+  const timer=setTimeout(()=>{ if(!(loaded.frentes&&loaded.eventos&&loaded.pendencias)) banner('Os dados ainda não carregaram. Verifique a conexão; o painel tenta de novo sozinho.'); },10000);
+  try{ db=await claude.use('db'); }catch(e){ db=null; }
+  try{ const user=await claude.use('user'); canWrite = user ? user.can('data.write') : null; }catch(e){ canWrite=null; }
+  if(!db){ clearTimeout(timer); banner('Não foi possível abrir os dados do painel. Entre na sua conta Claude para ver e lançar as frentes.'); applyPerm(); return; }
+  applyPerm();
+  const done=()=>{ if(loaded.frentes&&loaded.eventos&&loaded.pendencias){ clearTimeout(timer); if(canWrite!==false||window.__PUBLIC__) banner(''); } };
+  const onErr=()=>{ clearTimeout(timer); banner('A conexão com os dados caiu. Recarregue a página para continuar.'); };
+  db.collection('frentes').onSnapshot(s=>{
+    FR=s.docs.map(x=>{const v=x.data()||{};return {id:x.id,local:str(v.local)||'(sem local)',descricao:str(v.descricao),solicitante:str(v.solicitante),orgao:str(v.orgao),entrada:isoOk(v.entrada),canal:str(v.canal),equipe:str(v.equipe),prioridade:str(v.prioridade),status:str(v.status)||'Nova',inicio:isoOk(v.inicio),previsao:isoOk(v.previsao),termino:isoOk(v.termino),recursos:str(v.recursos),obs:str(v.obs)};});
+    if(!s.metadata.fromCache) loaded.frentes=true; done(); render();
+  },onErr);
+  db.collection('eventos').onSnapshot(s=>{
+    EV=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,frente:str(v.frente),data:isoOk(v.data)||'',tipo:str(v.tipo),motivo:str(v.motivo),quem:str(v.quem),texto:str(v.texto),previsao:isoOk(v.previsao),criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0};}).filter(e=>e.data&&e.frente);
+    if(!s.metadata.fromCache) loaded.eventos=true; done(); render();
+  },onErr);
+  db.collection('pendencias').onSnapshot(s=>{
+    PD=s.docs.map(x=>{const v=x.data()||{};return {id:x.id,pedido:str(v.pedido),quem:str(v.quem),data:isoOk(v.data),local:str(v.local),resposta:str(v.resposta),situacao:str(v.situacao)||'Aberta',obs:str(v.obs)};});
+    if(!s.metadata.fromCache) loaded.pendencias=true; done(); render();
+  },onErr);
+})();
+</script>
+</body>
+</html>
