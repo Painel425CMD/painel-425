@@ -2,9 +2,12 @@
 """Gera a versão pública (só leitura) do Painel de Frentes – Contrato 425.
 
 Uso: python3 gerar_site.py dados.json saida/index.html
-dados.json = {"frentes": {...}, "eventos": {...}, "pendencias": {...}, "pendhist": {...}}
+dados.json = {"frentes": {...}, "eventos": {...}, "pendencias": {...}, "pendhist": {...},
+              "otb": {...}, "midia": {...}}
 (o conteúdo das coleções do painel, lido com db_list).
 Remove telefones e e-mails antes de publicar.
+Fotos: só entram as marcadas como "publico": true E que já tenham o arquivo
+copiado em <repo>/fotos/<asset>.jpg|.png|.webp|.gif|.mp4|.webm (as rotinas copiam).
 """
 import json, re, sys, datetime, os
 from zoneinfo import ZoneInfo
@@ -25,8 +28,17 @@ def limpa(v):
 
 def main(src, out):
     dados = limpa(json.load(open(src, encoding='utf-8')))
-    for c in ('frentes', 'eventos', 'pendencias', 'pendhist'):
+    for c in ('frentes', 'eventos', 'pendencias', 'pendhist', 'otb', 'midia'):
         dados.setdefault(c, {})
+    # fotos e vídeos: só as permitidas e já copiadas para a pasta fotos/ do site
+    pasta = os.path.join(os.path.dirname(os.path.abspath(out)), 'fotos')
+    tem = {os.path.splitext(f)[0]: f for f in (os.listdir(pasta) if os.path.isdir(pasta) else [])}
+    pub = {}
+    for k, v in dados['midia'].items():
+        a = str(v.get('asset', ''))
+        if v.get('publico') is True and a in tem:
+            pub[k] = {**{x: v.get(x) for x in ('alvo', 'evento', 'asset', 'tipo', 'data', 'criadoEm', 'publico')}, 'nome': '', 'src': 'fotos/' + tem[a]}
+    dados['midia'] = pub
     # notas internas das pendências não vão para o site aberto
     dados['pendhist'] = {k: v for k, v in dados['pendhist'].items() if not v.get('interna')}
     agora = datetime.datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y às %Hh%M')
