@@ -169,6 +169,23 @@ dialog{max-height:calc(100vh - 40px);overflow:auto}
 
 #dbody dd .pen{margin-left:8px;border:0;background:none;color:var(--accent);font-size:12px;cursor:pointer;padding:2px 4px;border-radius:4px}
 #dbody dd .pen:hover{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+
+.gal{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px}
+.gal .th{display:flex;flex-direction:column;align-items:center;gap:2px}
+.gal .thb{position:relative;width:96px;height:96px;padding:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg);cursor:zoom-in}
+.gal.sm{margin:4px 0 2px}.gal.sm .thb{width:64px;height:64px}
+.gal img,.gal video{width:100%;height:100%;object-fit:cover;display:block}
+.gal .play{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:22px;text-shadow:0 1px 4px rgba(0,0,0,.7);pointer-events:none}
+.gal .miss{display:grid;place-items:center;height:100%;font-size:11px;color:var(--muted)}
+.medact{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:6px}
+.medact .hint{font-size:12px;color:var(--muted)}
+.picker{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.picker .pinfo{font-size:12.5px;color:var(--muted)}
+.lbox{position:fixed;inset:0;z-index:50;background:rgba(10,14,20,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:48px 16px 16px}
+.lbox img,.lbox video{max-width:100%;max-height:calc(100vh - 110px);border-radius:6px;background:#000}
+.lbox .lx{position:absolute;top:10px;right:12px}
+.lbox .lcap{color:#e8ecf2;font-size:13px}
+.lbox .lcap .del{color:#ffb4a8}
 </style>
 </head>
 <body>
@@ -531,6 +548,7 @@ function showDet(id){
   const x=dem.find(f=>f.id===id); if(!x){ dlg.close&&dlg.close(); return; }
   detOpen={kind:'f',id};
   head(x.id+' · '+x.status, x.local, [['Serviço',x.descricao],['Equipe',x.equipe||'A definir'],['Quem pediu',x.solicitante?(x.solicitante+(x.orgao&&x.orgao!=='A confirmar'?' ('+x.orgao+')':'')):''],['Como chegou',x.canal],['Pedido em',x.entrada?fmt(d(x.entrada)):''],['Prioridade',x.prioridade],['Recursos',x.recursos],['Início',x.inicio?fmt(d(x.inicio)):''],['Previsão de término',x.previsao?fmt(d(x.previsao)):(x.sit==='concluida'?'':'Sem previsão de término (a definir)')],['Parada agora',x.paradaAgora?'Desde '+fmt(d(x.paradaAgora.a))+' ('+Math.round((TODAY-d(x.paradaAgora.a))/DAY)+' dias)'+(x.paradaAgora.motivo?' · '+x.paradaAgora.motivo:''):''],['Concluída em',x.termino?fmt(d(x.termino)):''],['Observações',x.obs]]);
+  const ms=mediaSection(x.id); if(ms) dextra.appendChild(ms);
   // histórico
   const h=el('div',{class:'hist'},el('h4',{},'Histórico da frente'));
   const evs=x.eventos.slice().reverse();
@@ -546,7 +564,7 @@ function showDet(id){
       el('div',{class:'tx'},el('b',{},TIPO_LABEL[e.tipo]||e.tipo),
         e.tipo==='Parada'?' · '+(e.motivo||'motivo a confirmar'):'', e.tipo==='Previsão'&&e.previsao?' para '+fmt(d(e.previsao)):'',
         e.quem?el('span',{class:'m'},(e.tipo==='Pedido'?'Pedido por ':'Quem pediu/decidiu: ')+e.quem):null,
-        e.texto?el('span',{class:'m'},e.texto):null, edt, del)));
+        e.texto?el('span',{class:'m'},e.texto):null, gallery(mediaOf(x.id,e._id),true), edt, del)));
   }
   dextra.appendChild(h);
   if(canWrite!==false && db){
@@ -582,15 +600,18 @@ function quickForm(x,old){
   const sync=()=>{lMot.hidden=tipo.value!=='Parada'; lPrev.hidden=tipo.value!=='Previsão';};
   tipo.addEventListener('change',sync); sync();
   const btn=el('button',{class:'btn primary',type:'button'},old?'Salvar alteração':'Salvar');
-  const f=el('div',{class:'quick',hidden:''},el('label',{},'O que aconteceu',tipo),el('label',{},'Data',data),lMot,lPrev,el('label',{},'Quem pediu ou decidiu',quem),el('label',{class:'full'},'Descrição',texto),el('div',{class:'full',style:'display:flex;gap:10px;align-items:center'},btn,msg));
+  const pk=AS?mediaPicker(null):null;
+  const f=el('div',{class:'quick',hidden:''},el('label',{},'O que aconteceu',tipo),el('label',{},'Data',data),lMot,lPrev,el('label',{},'Quem pediu ou decidiu',quem),el('label',{class:'full'},'Descrição',texto),pk?pk.node:null,el('div',{class:'full',style:'display:flex;gap:10px;align-items:center'},btn,msg));
+  if(pk) pk.listen(f);
   btn.addEventListener('click',async()=>{
     if(!data.value){msg.className='msg err';msg.textContent='Informe a data.';return;}
     if(tipo.value==='Previsão'&&!prev.value){msg.className='msg err';msg.textContent='Informe a nova previsão.';return;}
     btn.disabled=true; msg.className='msg'; msg.textContent='Salvando…';
     const body={frente:x.id,data:data.value,tipo:tipo.value,motivo:tipo.value==='Parada'?mot.value:'',quem:quem.value.trim(),texto:texto.value.trim(),previsao:tipo.value==='Previsão'?prev.value:''};
     let ok;
-    if(old){ try{ await db.collection('eventos').doc(old._id).set({...body,criadoEm:old.criadoEm||Date.now()}); ok=true; }catch(err){ writeErr(err); ok=false; } }
+    if(old){ try{ await db.collection('eventos').doc(old._id).set({...body,criadoEm:old.criadoEm||Date.now()}); ok=old._id; }catch(err){ writeErr(err); ok=false; } }
     else ok=await saveEvent(body);
+    if(ok&&pk&&pk.files.length){ const st=(t,c)=>{msg.className='msg'+(c?' '+c:'');msg.textContent=t;}; const good=await uploadMedia(pk.files,x.id,ok,st); if(!good){btn.disabled=false; pk.reset(); return;} }
     btn.disabled=false;
     if(ok){ showDet(x.id); return; }
     if(!ok){msg.className='msg err';msg.textContent='Não foi possível salvar.';}
@@ -610,6 +631,7 @@ function showPend(id){
     for(const dt of $('dbody').querySelectorAll('dt')){ const k=keys[dt.textContent]; if(!k) continue; const dd=dt.nextElementSibling;
       dd.appendChild(el('button',{class:'pen',type:'button','aria-label':'Editar '+dt.textContent,title:'Editar',onclick:()=>{const hq=dextra.querySelector('.quick.hq'); if(hq) hq.hidden=true; pf.hidden=false; const f=pf.querySelector('[data-k="'+k+'"]'); pf.scrollIntoView({behavior:'smooth',block:'nearest'}); f&&f.focus({preventScroll:true});}},'✎ editar')); } }
   dextra.appendChild(el('div',{class:'porque'},el('b',{},PFECH.includes(p.situacao)?'Situação':'Está pendente porque…'),p.porque||(PFECH.includes(p.situacao)?p.situacao:'Motivo ainda não registrado.')));
+  const ms=mediaSection(p.id); if(ms) dextra.appendChild(ms);
   const h=el('div',{class:'hist'},el('h4',{},'Histórico de respostas e observações'));
   const hs=p.hist.slice().reverse();
   if(!hs.length) h.appendChild(el('div',{class:'empty',style:'padding:6px 0'},'Nada registrado ainda.'));
@@ -695,6 +717,113 @@ dlg.addEventListener('close',()=>{detOpen=null;});
 dlg.addEventListener('click',e=>{if(e.target===dlg) dlg.close();});
 function refreshDet(){ if(!detOpen||!dlg.open) return; const q=dextra.querySelector('.quick:not([hidden])'); if(q) return; detOpen.kind==='f'?showDet(detOpen.id):showPend(detOpen.id); }
 
+/* ---------- fotos e vídeos ---------- */
+let AS=null, MD=[];
+const MAXB=20*1024*1024;
+function newMid(){return 'F'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+async function prepFile(f){
+  const t=(f.type||'').toLowerCase(), n=(f.name||'').toLowerCase();
+  const isVid=t.startsWith('video/')||/\.(mp4|mov|webm|m4v)$/.test(n);
+  if(isVid){
+    if(f.size>MAXB) throw {code:'too_large'};
+    const type=t==='video/webm'||n.endsWith('.webm')?'video/webm':'video/mp4';
+    return {blob:f,type,tipo:'video'};
+  }
+  if(t==='image/gif') { if(f.size>MAXB) throw {code:'too_large'}; return {blob:f,type:'image/gif',tipo:'foto'}; }
+  // foto: reduz para no máximo 2000 px e salva como JPEG (aceita também HEIC quando o navegador abre)
+  try{
+    const bmp=await createImageBitmap(f);
+    const k=Math.min(1,2000/Math.max(bmp.width,bmp.height));
+    const c=document.createElement('canvas'); c.width=Math.round(bmp.width*k); c.height=Math.round(bmp.height*k);
+    c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+    const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.85));
+    if(blob) return {blob,type:'image/jpeg',tipo:'foto'};
+  }catch(_){}
+  if(['image/jpeg','image/png','image/webp'].includes(t)&&f.size<=MAXB) return {blob:f,type:t,tipo:'foto'};
+  throw {code:'unsupported_type'};
+}
+function upErr(e){const c=e&&e.code;return c==='too_large'?'arquivo maior que 20 MB':c==='unsupported_type'?'formato não aceito (use foto JPG/PNG ou vídeo MP4)':c==='quota_or_state'?'espaço de armazenamento cheio':c==='rate_limited'?'muitos envios seguidos, tente de novo em instantes':'não foi possível enviar';}
+// envia arquivos e grava na coleção midia; alvo = id da frente ou da pendência; evento = id da ocorrência (opcional)
+let lastMed=null;
+async function uploadMedia(files,alvo,evento,status){
+  const st0=status; status=(t,c)=>{lastMed={alvo,t,c,at:Date.now()}; const m=dextra.querySelector('.medmsg'); if(st0) st0(t,c); else if(m){m.className='msg medmsg'+(c?' '+c:'');m.textContent=t;}};
+  files=[...files]; if(!files.length) return true;
+  if(!AS||!db){ status&&status('Envio de fotos indisponível nesta visualização.','err'); return false; }
+  let ok=0, errs=[];
+  for(let i=0;i<files.length;i++){
+    status&&status('Enviando '+(i+1)+' de '+files.length+'…');
+    try{
+      const p=await prepFile(files[i]);
+      let r; try{ r=await AS.upload(p.blob,{type:p.type}); }catch(e){ if(e&&e.code==='store_unavailable'){ await new Promise(s=>setTimeout(s,1500)); r=await AS.upload(p.blob,{type:p.type}); } else throw e; }
+      await db.collection('midia').doc(newMid()).set({alvo,evento:evento||'',asset:r.id,tipo:p.tipo,nome:str(files[i].name).slice(0,120),data:iso(TODAY),criadoEm:Date.now()});
+      ok++;
+    }catch(e){ errs.push((files[i].name||'arquivo')+': '+upErr(e)); writeErr(e); }
+  }
+  if(status) status(errs.length?(ok?ok+' enviado(s). ':'')+errs.join('; '):(ok===1?'1 arquivo enviado.':ok+' arquivos enviados.'),errs.length?'err':'ok');
+  return !errs.length;
+}
+function mediaOf(alvo,evento){return MD.filter(m=>m.alvo===alvo&&(evento===undefined||m.evento===evento)).sort((a,b)=>a.criadoEm-b.criadoEm);}
+function lightbox(m){
+  const box=el('div',{class:'lbox',onclick:e=>{if(e.target===box||e.target.classList.contains('lx')) box.remove();}},
+    el('button',{class:'btn lx',type:'button'},'Fechar'),
+    m.tipo==='video'?el('video',{src:'/_blob/'+m.asset,controls:'',autoplay:'',playsinline:''}):el('img',{src:'/_blob/'+m.asset,alt:m.nome||'Foto'}),
+    el('div',{class:'lcap'},fmt(d(m.data))+(m.nome?' · '+m.nome:''),' ',(canWrite!==false&&db&&AS)?delBtn(async()=>{ await db.collection('midia').doc(m._id).delete(); try{await AS.delete(m.asset);}catch(_){} box.remove(); }):null));
+  (dlg.open?dlg:document.body).appendChild(box);
+}
+function gallery(list,small){
+  if(!list.length) return null;
+  const can=canWrite!==false&&db;
+  return el('div',{class:'gal'+(small?' sm':'')},list.map(m=>el('div',{class:'th'},
+    el('button',{type:'button',class:'thb','aria-label':(m.tipo==='video'?'Abrir vídeo':'Abrir foto'),onclick:e=>{e.stopPropagation();lightbox(m);}},
+      m.tipo==='video'?el('video',{src:'/_blob/'+m.asset+'#t=0.5',preload:'metadata',muted:'',playsinline:''}):el('img',{src:'/_blob/'+m.asset,loading:'lazy',alt:m.nome||'Foto',onerror:e=>{e.target.replaceWith(el('span',{class:'miss'},'indisponível'));}}),
+      m.tipo==='video'?el('span',{class:'play'},'▶'):null),
+    can&&AS&&!small?delBtn(async()=>{ await db.collection('midia').doc(m._id).delete(); try{await AS.delete(m.asset);}catch(_){} }):null)));
+}
+// seletor de arquivos usado nos formulários; também aceita colar (Ctrl+V) imagens no formulário
+function mediaPicker(form){
+  let list=[];
+  const inp=el('input',{type:'file',accept:'image/*,video/*',multiple:'',hidden:''});
+  const info=el('span',{class:'pinfo'});
+  const clr=el('button',{type:'button',class:'del',hidden:''},'tirar');
+  const sync=()=>{info.textContent=list.length?(list.length===1?'1 arquivo: ':list.length+' arquivos: ')+list.map(f=>f.name||'imagem colada').join(', '):'Nenhum anexo. Você também pode colar uma imagem aqui (Ctrl+V).';clr.hidden=!list.length;};
+  inp.addEventListener('change',()=>{list=list.concat([...inp.files]);inp.value='';sync();});
+  clr.addEventListener('click',()=>{list=[];sync();});
+  const btn=el('button',{type:'button',class:'btn'},'📷 Anexar fotos ou vídeos');
+  btn.addEventListener('click',()=>inp.click());
+  const node=el('div',{class:'full picker'},btn,inp,info,clr);
+  const listen=fm=>fm.addEventListener('paste',e=>{const fs=[...(e.clipboardData&&e.clipboardData.files||[])].filter(f=>/^(image|video)\//.test(f.type)); if(fs.length){e.preventDefault();e.stopPropagation();list=list.concat(fs);sync();}});
+  if(form) listen(form);
+  sync();
+  return {node,listen,get files(){return list;},reset(){list=[];sync();}};
+}
+// botão "adicionar" direto no detalhe (frente ou pendência)
+function addMediaBtn(alvo,msgEl){
+  const inp=el('input',{type:'file',accept:'image/*,video/*',multiple:'',hidden:''});
+  const st=(t,c)=>{msgEl.className='msg'+(c?' '+c:'');msgEl.textContent=t;};
+  inp.addEventListener('change',async()=>{const fs=[...inp.files];inp.value='';await uploadMedia(fs,alvo,'',null);});
+  return el('span',{},el('button',{class:'btn',type:'button',onclick:()=>inp.click()},'📷 Adicionar fotos ou vídeos'),inp);
+}
+// colar imagem com o detalhe aberto
+document.addEventListener('paste',async e=>{
+  if(!dlg.open||!detOpen||!AS) return;
+  if(e.target&&e.target.closest&&e.target.closest('.quick')) return;
+  const fs=[...(e.clipboardData&&e.clipboardData.files||[])].filter(f=>/^(image|video)\//.test(f.type)); if(!fs.length) return;
+  e.preventDefault();
+  await uploadMedia(fs,detOpen.id,'',null);
+});
+function mediaSection(alvo,evIds){
+  const all=mediaOf(alvo,''); const can=canWrite!==false&&db&&AS;
+  const total=MD.filter(m=>m.alvo===alvo).length;
+  if(!all.length&&!can) return null;
+  const msgEl=el('span',{class:'msg medmsg',role:'status'});
+  if(lastMed&&lastMed.alvo===alvo&&Date.now()-lastMed.at<20000){ msgEl.className='msg medmsg'+(lastMed.c?' '+lastMed.c:''); msgEl.textContent=lastMed.t; }
+  const sec=el('div',{class:'hist med'},el('h4',{},'Fotos e vídeos'+(total?' ('+total+')':'')));
+  const g=gallery(all); if(g) sec.appendChild(g);
+  else sec.appendChild(el('div',{class:'empty',style:'padding:4px 0'},total?'As demais fotos estão nas ocorrências abaixo.':'Nenhuma foto ainda.'));
+  if(can) sec.appendChild(el('div',{class:'medact'},addMediaBtn(alvo,msgEl),el('span',{class:'hint'},'ou cole uma imagem com Ctrl+V'),msgEl));
+  return sec;
+}
+
 /* ---------- tooltip ---------- */
 const tipEl=$('tip');
 function tip(e,t){tipEl.textContent='';t.split('\n').forEach((l,i)=>{if(i)tipEl.appendChild(document.createElement('br'));tipEl.appendChild(document.createTextNode(l));});
@@ -725,9 +854,12 @@ function newId(){return 'E'+Date.now().toString(36)+Math.random().toString(36).s
 function writeErr(e){ if(e&&e.code==='invalid_argument'&&canWrite===null){ canWrite=false; applyPerm(); } }
 async function saveEvent(ev){
   if(!db) return false;
-  try{ await db.collection('eventos').doc(newId()).set({...ev,criadoEm:Date.now()}); return true; }
+  try{ const id=newId(); await db.collection('eventos').doc(id).set({...ev,criadoEm:Date.now()}); return id; }
   catch(e){ writeErr(e); return false; }
 }
+let PK={};
+function initPickers(){ for(const [f,anchor] of [['formEv','evMsg'],['formFr','frMsg'],['formPd','pdMsg']]){ if(PK[f]) continue; const pk=mediaPicker($(f)); PK[f]=pk; $(f).querySelector('.fgrid').appendChild(pk.node); } }
+const fst=id=>(t,c)=>msg(id,t,c);
 $('formEv').addEventListener('submit',async e=>{
   e.preventDefault();
   const fr=$('evFrente').value, data=$('evData').value, tipo=$('evTipo').value;
@@ -736,6 +868,7 @@ $('formEv').addEventListener('submit',async e=>{
   if(tipo==='Previsão'&&!$('evPrev').value) return msg('evMsg','Informe a nova previsão.','err');
   const b=e.submitter||$('formEv').querySelector('button[type=submit]'); b.disabled=true; msg('evMsg','Salvando…');
   const ok=await saveEvent({frente:fr,data,tipo,motivo:tipo==='Parada'?$('evMotivo').value:'',quem:$('evQuem').value.trim(),texto:$('evTexto').value.trim(),previsao:tipo==='Previsão'?$('evPrev').value:''});
+  if(ok&&PK.formEv&&PK.formEv.files.length){ await uploadMedia(PK.formEv.files,fr,ok,fst('evMsg')); PK.formEv.reset(); b.disabled=false; $('evTexto').value=''; $('evQuem').value=''; $('evPrev').value=''; return; }
   b.disabled=false;
   if(ok){ msg('evMsg','Ocorrência salva.','ok'); $('evTexto').value=''; $('evQuem').value=''; $('evPrev').value=''; }
   else msg('evMsg','Não foi possível salvar.','err');
@@ -762,7 +895,7 @@ $('formFr').addEventListener('submit',async e=>{
   const body={local,descricao:desc,solicitante:$('frQuem').value.trim(),orgao:$('frOrgao').value,entrada:$('frData').value||null,canal:$('frCanal').value,equipe:$('frEquipe').value.trim(),prioridade:$('frPrio').value,status,inicio:$('frInicio').value||null,previsao:$('frPrev').value||null,recursos:$('frRec').value,obs:$('frObs').value.trim()};
   const b=$('formFr').querySelector('button[type=submit]'); b.disabled=true; msg('frMsg','Salvando…');
   try{
-    if(editing){ await db.collection('frentes').doc(editing).update(body); msg('frMsg','Frente '+editing+' atualizada.','ok'); resetFr(); }
+    if(editing){ const eid=editing; await db.collection('frentes').doc(eid).update(body); msg('frMsg','Frente '+eid+' atualizada.','ok'); resetFr(); if(PK.formFr&&PK.formFr.files.length){ await uploadMedia(PK.formFr.files,eid,'',fst('frMsg')); PK.formFr.reset(); } }
     else{
       const n=Math.max(0,...FR.map(f=>parseInt(String(f.id).replace(/\D/g,''),10)||0))+1;
       const id='D-'+String(n).padStart(3,'0');
@@ -770,7 +903,8 @@ $('formFr').addEventListener('submit',async e=>{
       if(body.entrada) await saveEvent({frente:id,data:body.entrada,tipo:'Pedido',motivo:'',quem:body.solicitante,texto:'Chegou por: '+body.canal,previsao:''});
       if(status==='Em execução'&&body.inicio) await saveEvent({frente:id,data:body.inicio,tipo:'Início',motivo:'',quem:'',texto:'',previsao:''});
       if(fromPend){ const pid=fromPend; await db.collection('pendencias').doc(pid).update({situacao:'Virou frente',frente:id}); await db.collection('pendhist').doc(newHid(pid)).set({pendencia:pid,data:iso(TODAY),quem:'',texto:'Virou a frente '+id+'.',interna:false,criadoEm:Date.now()}); }
-      msg('frMsg','Frente '+id+' cadastrada'+(fromPend?' (veio da pendência '+fromPend+')':'')+'. Agora ela aparece no painel.','ok'); resetFr();
+      const fp=fromPend; resetFr(); msg('frMsg','Frente '+id+' cadastrada'+(fp?' (veio da pendência '+fp+')':'')+'. Agora ela aparece no painel.','ok');
+      if(PK.formFr&&PK.formFr.files.length){ await uploadMedia(PK.formFr.files,id,'',fst('frMsg')); PK.formFr.reset(); }
     }
   }catch(err){ writeErr(err); msg('frMsg','Não foi possível salvar.','err'); }
   b.disabled=false;
@@ -785,7 +919,8 @@ $('formPd').addEventListener('submit',async e=>{
   const b=e.submitter||$('formPd').querySelector('button[type=submit]'); b.disabled=true; msg('pdMsg','Salvando…');
   try{ await db.collection('pendencias').doc(id).set({pedido,quem:$('pdQuem').value.trim(),deQuem:$('pdDeQuem').value,data:$('pdData').value||null,local:$('pdLocal').value.trim(),situacao:$('pdSit').value,aguardando:$('pdAg').value.trim(),porque:$('pdPorque').value.trim(),frente:'',resposta:'',obs:''});
     const r=$('pdResp').value.trim(); if(r) await db.collection('pendhist').doc(newHid(id)).set({pendencia:id,data:$('pdData').value||iso(TODAY),quem:'',texto:r,interna:false,criadoEm:Date.now()});
-    msg('pdMsg','Pendência '+id+' salva.','ok'); $('formPd').reset(); $('pdData').value=iso(TODAY); }
+    msg('pdMsg','Pendência '+id+' salva.','ok'); $('formPd').reset(); $('pdData').value=iso(TODAY);
+    if(PK.formPd&&PK.formPd.files.length){ await uploadMedia(PK.formPd.files,id,'',fst('pdMsg')); PK.formPd.reset(); } }
   catch(err){ writeErr(err); msg('pdMsg','Não foi possível salvar.','err'); }
   b.disabled=false;
 });
@@ -845,6 +980,8 @@ render();
   try{ db=await claude.use('db'); }catch(e){ db=null; }
   try{ const user=await claude.use('user'); canWrite = user ? user.can('data.write') : null; }catch(e){ canWrite=null; }
   if(!db){ clearTimeout(timer); banner('Não foi possível abrir os dados do painel. Entre na sua conta Claude para ver e lançar as frentes.'); applyPerm(); return; }
+  try{ AS=window.__PUBLIC__?null:await claude.use('assets'); }catch(e){ AS=null; }
+  if(AS) initPickers();
   applyPerm();
   const done=()=>{ if(loaded.frentes&&loaded.eventos&&loaded.pendencias){ clearTimeout(timer); if(canWrite!==false||window.__PUBLIC__) banner(''); } };
   const onErr=()=>{ clearTimeout(timer); banner('A conexão com os dados caiu. Recarregue a página para continuar.'); };
@@ -860,6 +997,10 @@ render();
     PH=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,pendencia:str(v.pendencia),data:isoOk(v.data)||'',quem:str(v.quem),texto:str(v.texto),interna:v.interna===true,criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0};}).filter(h=>h.pendencia);
     if(!s.metadata.fromCache) loaded.pendhist=true; done(); render();
   },onErr);
+  db.collection('midia').onSnapshot(s=>{
+    MD=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,alvo:str(v.alvo),evento:str(v.evento),asset:str(v.asset),tipo:v.tipo==='video'?'video':'foto',nome:str(v.nome),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0};}).filter(m=>m.alvo&&/^[A-Za-z0-9_-]{8,64}$/.test(m.asset));
+    render();
+  },()=>{});
   db.collection('pendencias').onSnapshot(s=>{
     PD=s.docs.map(x=>{const v=x.data()||{};return {id:x.id,pedido:str(v.pedido),quem:str(v.quem),deQuem:str(v.deQuem),data:isoOk(v.data),local:str(v.local),resposta:str(v.resposta),situacao:str(v.situacao)||'Aberta',obs:str(v.obs),aguardando:str(v.aguardando),porque:str(v.porque),frente:str(v.frente)};});
     if(!s.metadata.fromCache) loaded.pendencias=true; done(); render();
