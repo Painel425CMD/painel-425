@@ -376,6 +376,11 @@ header.top{display:block}
 .mzoom .zv{font-size:11px;font-weight:600;text-align:center;background:rgba(255,255,255,.9);border-radius:4px;padding:1px 0;color:#1b2430}
 .mwrap.zl .pin .pl{display:block}
 .mhint{margin:0;padding:6px 14px 0;font-size:12px;color:var(--muted)}
+
+.grp{position:relative}
+.grp .grpt{position:sticky;left:10px;display:inline-block}
+.fsel{min-width:0;max-width:100%}
+.fsel select{min-width:0;max-width:100%}
 </style>
 </head>
 <body>
@@ -663,7 +668,7 @@ function renderGantt(){
   const order={parada:0,andamento:1,pendente:2,concluida:3};
   for(const [name,list] of groups){
     if(!list.length) continue;
-    if(name) g.appendChild(el('div',{class:'grp',style:'min-width:'+(lw+tw)+'px'},name+' · '+list.length));
+    if(name) g.appendChild(el('div',{class:'grp',style:'min-width:'+(lw+tw)+'px'},el('span',{class:'grpt'},name+' · '+list.length)));
     list.sort((a,b)=>(order[a.sit]-order[b.sit])||((d(a.inicio)||d(a.entrada)||0)-(d(b.inicio)||d(b.entrada)||0)));
     for(const x of list) g.appendChild(ganttRow(x,X,weeks,pxw,lo));
   }
