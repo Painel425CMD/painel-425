@@ -328,6 +328,30 @@ header.top{display:block}
 .view>*{min-width:0}
 #faltadet .logrow{grid-template-columns:96px 1fr auto}
 .bar select{max-width:100%;min-width:0}
+/* aba Campo */
+.campobox{display:grid;gap:14px;max-width:760px;margin:0 auto;width:100%}
+.cbox .cin{padding:14px 16px;display:grid;gap:10px}
+.cbox textarea,.cbox input,.cbox select{font:inherit;font-size:16px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px 12px;width:100%}
+.cq{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+.crow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn.big{font-size:15px;padding:11px 16px;min-height:46px}
+.clist{display:grid}
+.citem{display:grid;grid-template-columns:62px 1fr;gap:12px;text-align:left;font:inherit;color:inherit;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 16px;cursor:pointer}
+.citem2{display:grid;gap:8px;border-bottom:1px solid var(--line);padding:12px 16px}
+.citem:last-child,.citem2:last-child{border-bottom:0}
+.cd{display:grid;justify-items:center;font-size:11px;color:var(--muted)}
+.cd b{font:600 24px/1 var(--display);color:var(--c)}
+.ct{display:grid;gap:2px;cursor:pointer}
+.cs{font-size:14px}
+.cm{font-size:12px;color:var(--muted)}
+.citem2 .btn{min-height:42px;padding:8px 14px;font-size:14px}
+.cact{display:grid;gap:8px}
+.cact[hidden]{display:none}
+.perg{border-color:var(--gold)}
+.pq{padding:12px 16px;border-bottom:1px solid var(--line);display:grid;gap:8px}
+.pqt{font-weight:600}
+.pqr{font-size:12px;color:var(--muted)}
+.msgout{font:13px/1.45 ui-monospace,Menlo,Consolas,monospace;width:100%;border:1px solid var(--line);border-radius:6px;padding:10px;background:#fbfbfd;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -346,6 +370,7 @@ header.top{display:block}
   <nav class="tabs" role="tablist">
     <button class="tab" role="tab" id="t-painel" aria-selected="true" aria-controls="painel" type="button">Painel</button>
     <button class="tab" role="tab" id="t-prog" aria-selected="false" aria-controls="programadas" type="button">Programadas</button>
+    <button class="tab" role="tab" id="t-campo" aria-selected="false" aria-controls="campo" type="button">Campo</button>
     <button class="tab" role="tab" id="t-lanc" aria-selected="false" aria-controls="lancamentos" type="button">Lançamentos</button>
   </nav>
 </div>
@@ -392,7 +417,12 @@ header.top{display:block}
     <div class="progwrap" id="proglist"></div>
   </div>
 
+  <div class="view" id="campo" role="tabpanel" aria-labelledby="t-campo" hidden>
+    <div class="campobox" id="campobox"></div>
+  </div>
+
   <div class="view" id="lancamentos" role="tabpanel" aria-labelledby="t-lanc" hidden>
+    <section class="card" id="msgs"></section>
     <section class="card" id="faltadet" hidden></section>
     <div class="forms">
       <form class="card" id="formEv" novalidate>
@@ -475,7 +505,7 @@ const $ = id => document.getElementById(id);
 const TIPOS=['Execução','Parada','Retomada','Início','Previsão','Concluída','Nota','Pedido'];
 const TIPO_LABEL={'Execução':'O que foi feito (andamento)',Parada:'Frente parou',Retomada:'Frente voltou',Início:'Frente começou',Previsão:'Nova previsão de término',Concluída:'Frente concluída',Nota:'Anotação',Pedido:'Pedido recebido'};
 const TIPO_COR={'Execução':'var(--accent)',Parada:'var(--pause)',Retomada:'var(--run)',Início:'var(--run)',Previsão:'var(--plan)',Concluída:'var(--done)',Nota:'var(--muted)',Pedido:'var(--ink)'};
-const MOTIVOS=['Prioridade para outra frente','Chuva','Falta de material','Falta de equipamento','Falta de equipe','Pedido da fiscalização','Liberação ou terceiros','Outro'];
+const MOTIVOS=['Chuva','Falta de material','Falta de equipe','Equipamento','Prioridade da fiscalização','Prioridade para outra frente','Liberação de terceiros (Copasa, Cemig)','Outro'];
 
 const SIT = {
   andamento:{label:'Em andamento', c:'var(--run)', hint:'frentes trabalhando'},
@@ -1321,10 +1351,142 @@ function renderLog(){
   }
 }
 
+
+/* ---------- aba Campo (celular do encarregado) ---------- */
+let RC=[], PG=[];
+const DIAS_SEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+function quemSou(){ try{ return localStorage.getItem('painel425_quem')||'Erick'; }catch(_){ return 'Erick'; } }
+function newRid(){return 'R'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
+function renderCampo(){
+  const box=$('campobox'); if(!box||window.__PUBLIC__) return;
+  const keepTxt=$('rcTexto')?$('rcTexto').value:''; const ae=document.activeElement; const focado=ae&&/^(TEXTAREA|INPUT|SELECT)$/.test(ae.tagName)&&ae.closest('#campobox')&&(ae.value||ae.tagName==='SELECT');
+  if(focado) return; // não redesenha enquanto a pessoa digita
+  box.textContent='';
+  const can=canWrite!==false&&db;
+  // 1. recado
+  const quem=el('input',{id:'rcQuem',value:quemSou(),'aria-label':'Quem está enviando'});
+  const tx=el('textarea',{id:'rcTexto',rows:'5',placeholder:'Fale (microfone do teclado) ou escreva do seu jeito: o que fez hoje, o que não deu e por quê, demanda que chegou por ligação, o que vai amanhã…'}); tx.value=keepTxt;
+  let geo=null; const geoMsg=el('span',{class:'msg'});
+  const fin=el('input',{type:'file',accept:'image/*,video/*',multiple:'',hidden:''}); let files=[];
+  const fl=el('span',{class:'msg'});
+  fin.addEventListener('change',()=>{files=[...fin.files]; fl.textContent=files.length?files.length+(files.length===1?' arquivo':' arquivos')+' anexado(s)':'';});
+  const bFoto=el('button',{type:'button',class:'btn big',onclick:()=>fin.click()},'Foto ou vídeo');
+  const bGeo=el('button',{type:'button',class:'btn big',onclick:()=>{ if(!navigator.geolocation){geoMsg.textContent='Sem GPS aqui. Cole o link do Maps no texto.';return;} geoMsg.textContent='Pegando a localização…';
+    navigator.geolocation.getCurrentPosition(p=>{geo={lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6)};geoMsg.className='msg ok';geoMsg.textContent='Localização anexada.';},()=>{geoMsg.className='msg err';geoMsg.textContent='Não consegui a localização. Cole o link do Maps no texto.';},{enableHighAccuracy:true,timeout:15000}); }},'Minha localização');
+  const msgEl=el('span',{class:'msg',role:'status'});
+  const bEnv=el('button',{type:'button',class:'btn primary big',onclick:async()=>{
+    const t=tx.value.trim(); if(!t&&!files.length){msgEl.className='msg err';msgEl.textContent='Escreva ou anexe algo.';return;}
+    bEnv.disabled=true; msgEl.className='msg'; msgEl.textContent='Enviando…';
+    try{ try{localStorage.setItem('painel425_quem',quem.value.trim()||'Erick');}catch(_){}
+      const id=newRid(); await db.collection('recados').doc(id).set({texto:t,quem:quem.value.trim()||'Erick',data:iso(TODAY),criadoEm:Date.now(),geo:geo||null,situacao:'novo'});
+      if(files.length){ await uploadMedia(files,id,'',(m,c)=>{msgEl.className='msg'+(c?' '+c:'');msgEl.textContent=m;}); }
+      tx.value=''; tx.blur(); files=[]; geo=null; msgEl.className='msg ok'; msgEl.textContent='Recado enviado. Ele vai para o painel no fechamento das 17h47.'; setTimeout(renderCampo,50);
+    }catch(e){ writeErr(e); msgEl.className='msg err'; msgEl.textContent='Não foi possível enviar. Tente de novo ou mande pelo WhatsApp.'; }
+    bEnv.disabled=false; }},'Enviar recado');
+  box.appendChild(el('section',{class:'card cbox'},el('h2',{},'Mandar recado ',el('small',{},'o Claude organiza e lança no painel')),
+    el('div',{class:'cin'},el('label',{class:'cq'},'Quem envia',quem),tx,el('div',{class:'crow'},bFoto,bGeo,fin),el('div',{},fl,' ',geoMsg),el('div',{class:'crow'},bEnv,msgEl))));
+  // 2. perguntas
+  const abertas=PG.filter(p=>!p.respondida).sort((a,b)=>a.criadoEm-b.criadoEm);
+  if(abertas.length){ const s=el('section',{class:'card cbox perg'},el('h2',{},'Perguntas para você ',el('small',{},abertas.length+(abertas.length===1?' aberta':' abertas'))));
+    for(const q of abertas){ const r=el('textarea',{rows:'2',placeholder:'Responda aqui (pode falar pelo microfone)'}); const m=el('span',{class:'msg'});
+      const b=el('button',{type:'button',class:'btn primary',onclick:async()=>{ if(!r.value.trim()) return; b.disabled=true; try{ await db.collection('perguntas').doc(q._id).update({resposta:r.value.trim(),respondida:true,respondidaEm:Date.now(),quemRespondeu:quemSou()}); }catch(e){ writeErr(e); m.className='msg err'; m.textContent='Não salvou.'; b.disabled=false; } }},'Responder');
+      s.appendChild(el('div',{class:'pq'},el('div',{class:'pqt'},q.texto),q.ref?el('div',{class:'pqr'},q.ref):null,r,el('div',{class:'crow'},b,m))); }
+    box.appendChild(s); }
+  // 3. pendente
+  const pend=penAbertas.filter(p=>!EXT.test(p.aguardando||'')&&p.situacao!=='Respondida').map(p=>({p,dias:p.data?Math.round((TODAY-d(p.data))/DAY):0})).sort((a,b)=>b.dias-a.dias);
+  const par=dem.filter(x=>x.sit==='parada');
+  const s3=el('section',{class:'card cbox'},el('h2',{},'Pendente ',el('small',{},(pend.length+par.length)+' itens · mais antigos primeiro')));
+  const ul3=el('div',{class:'clist'});
+  for(const o of pend){ const c=o.dias>14?'var(--risk)':o.dias>5?'var(--pause)':'var(--muted)';
+    ul3.appendChild(el('button',{type:'button',class:'citem',onclick:()=>showPend(o.p.id)},el('span',{class:'cd',style:'--c:'+c},el('b',{},String(o.dias)),'dias'),el('span',{class:'ct'},el('b',{},o.p.pedido),el('span',{class:'cs'},'Falta: '+(o.p.porque||'definir o próximo passo')),el('span',{class:'cm'},o.p.id+(o.p.local?' · '+o.p.local:'')+(o.p.aguardando?' · aguardando '+o.p.aguardando:''))))); }
+  for(const x of par){ const dd=x.paradaAgora?Math.round((TODAY-d(x.paradaAgora.a))/DAY):0;
+    ul3.appendChild(el('button',{type:'button',class:'citem',onclick:()=>showDet(x.id)},el('span',{class:'cd',style:'--c:var(--pause)'},el('b',{},String(dd)),'parada'),el('span',{class:'ct'},el('b',{},x.local),el('span',{class:'cs'},'Parada: '+((x.paradaAgora&&x.paradaAgora.motivo)||'motivo a confirmar')),el('span',{class:'cm'},x.descricao+(x.equipe?' · '+x.equipe:''))))); }
+  if(!pend.length&&!par.length) ul3.appendChild(el('div',{class:'empty'},'Nada pendente com a Sinarco.'));
+  s3.appendChild(ul3); box.appendChild(s3);
+  // 4. em andamento
+  const and=dem.filter(x=>x.sit==='andamento').sort((a,b)=>(a.equipe||'').localeCompare(b.equipe||''));
+  const s4=el('section',{class:'card cbox'},el('h2',{},'Em andamento ',el('small',{},and.length+' frentes')));
+  const ul4=el('div',{class:'clist'});
+  for(const x of and){ const hoje=x.eventos.filter(e=>e.data===iso(TODAY)&&e.tipo==='Execução');
+    const area=el('div',{class:'cact',hidden:''});
+    const abre=(tipo)=>{ area.hidden=false; area.textContent=''; const t=el('textarea',{rows:'2',placeholder:tipo==='Execução'?'O que foi feito hoje (trecho, quantidade, material)':tipo==='Parada'?'Detalhe (opcional)':'Observação (opcional)'});
+      const mot=tipo==='Parada'?el('select',{},MOTIVOS.map(m=>el('option',{},m))):null; const m=el('span',{class:'msg'});
+      const ok=el('button',{type:'button',class:'btn primary',onclick:async()=>{ if(tipo==='Execução'&&!t.value.trim()){m.className='msg err';m.textContent='Escreva o que foi feito.';return;} ok.disabled=true;
+        const r=await saveEvent({frente:x.id,data:iso(TODAY),tipo,motivo:mot?mot.value:'',quem:quemSou(),texto:t.value.trim(),previsao:''}); if(!r){m.className='msg err';m.textContent='Não salvou.';ok.disabled=false;} }},'Salvar');
+      area.append(mot||'',t,el('div',{class:'crow'},ok,m)); t.focus(); };
+    ul4.appendChild(el('div',{class:'citem2'},el('div',{class:'ct',onclick:()=>showDet(x.id)},el('b',{},x.local),el('span',{class:'cs'},x.execucao||x.descricao),el('span',{class:'cm'},(x.equipe||'Equipe a definir')+(hoje.length?' · hoje: '+hoje.map(e=>e.texto).join('; '):''))),
+      can?el('div',{class:'crow'},el('button',{type:'button',class:'btn',onclick:()=>abre('Execução')},'Fez hoje'),el('button',{type:'button',class:'btn',onclick:()=>abre('Parada')},'Parou'),el('button',{type:'button',class:'btn',onclick:()=>abre('Concluída')},'Concluiu')):null,area)); }
+  if(!and.length) ul4.appendChild(el('div',{class:'empty'},'Nenhuma frente em andamento.'));
+  s4.appendChild(ul4); box.appendChild(s4);
+  // 5. programado
+  const prog=dem.filter(x=>x.sit==='pendente').sort((a,b)=>(d(a.inicio)||new Date(9e15))-(d(b.inicio)||new Date(9e15)));
+  const s5=el('section',{class:'card cbox'},el('h2',{},'Programado ',el('small',{},prog.length+' frentes')));
+  const ul5=el('div',{class:'clist'});
+  for(const x of prog){ const dt=d(x.inicio); const m=el('span',{class:'msg'});
+    ul5.appendChild(el('div',{class:'citem2'},el('div',{class:'ct',onclick:()=>showDet(x.id)},el('b',{},(dt?fmt(dt)+' ('+DIAS_SEM[dt.getDay()]+') · ':'Sem data · ')+x.local),el('span',{class:'cs'},x.execucao||x.descricao),el('span',{class:'cm'},x.equipe||'Equipe a definir')),
+      can?el('div',{class:'crow'},el('button',{type:'button',class:'btn',onclick:async e=>{e.target.disabled=true; const r=await saveEvent({frente:x.id,data:iso(TODAY),tipo:'Início',motivo:'',quem:quemSou(),texto:'',previsao:''}); if(!r){m.className='msg err';m.textContent='Não salvou.';e.target.disabled=false;}}},'Começou hoje'),m):null)); }
+  if(!prog.length) ul5.appendChild(el('div',{class:'empty'},'Nada programado.'));
+  s5.appendChild(ul5); box.appendChild(s5);
+  // 6. recados de hoje
+  const meus=RC.filter(r=>r.data===iso(TODAY)).sort((a,b)=>b.criadoEm-a.criadoEm);
+  if(meus.length){ const s6=el('section',{class:'card cbox'},el('h2',{},'Recados de hoje ',el('small',{},meus.length+' enviados')));
+    const l=el('div',{class:'clist'}); meus.forEach(r=>l.appendChild(el('div',{class:'citem2'},el('div',{class:'ct'},el('span',{class:'cm'},new Date(r.criadoEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' · '+r.quem+' · '+(r.situacao==='lancado'?'lançado no painel':'aguardando o fechamento')),el('span',{class:'cs'},r.texto),gallery(mediaOf(r._id),true)))));
+    s6.appendChild(l); box.appendChild(s6); }
+}
+
+/* ---------- mensagens para o grupo ---------- */
+const TERC=/terceiriz|krv|pais e filhos|jonas/i;
+function tituloFr(x){ const t=(x.otb?'OPERAÇÃO TAPA-BURACOS (OTB)':(x.descricao.split(/[(:;]/)[0].trim().toUpperCase()+' – '+x.local.toUpperCase())); return t.length>90?t.slice(0,88)+'…':t; }
+function gerarMsg(tipo,dia){
+  const D=dia, dd=d(D), dstr=fmt(dd)+'/'+dd.getFullYear();
+  const ESTADO={andamento:'*🚧 Em andamento*',parada:'*⏸️ EM PAUSA*',concluida:'*✅ Concluído*'};
+  let itens;
+  if(tipo==='exec'){
+    itens=dem.filter(x=>x.eventos.some(e=>e.data===D&&e.tipo!=='Pedido')||x.sit==='andamento'||x.sit==='parada'||(x.otb&&OT.some(o=>o.data===D)))
+      .filter(x=>!(x.inicio&&x.inicio>D));
+  } else {
+    itens=dem.filter(x=>x.sit==='andamento'||(x.sit==='pendente'&&x.inicio&&x.inicio<=D)||x.sit==='parada');
+  }
+  const extra=x=>tipo==='exec'&&x.inicio===D&&!x.otb&&(FR.find(f=>f.id===x.id)||{}).status!=='Programada'&&x.entrada&&x.entrada>=iso(new Date(dd.getTime()-2*DAY));
+  const grupos=[['🏗️ *EQUIPE PRÓPRIA SINARCO - 425*',itens.filter(x=>!TERC.test(x.equipe)&&!extra(x))],['🤝 *– EQUIPES TERCEIRIZADAS*',itens.filter(x=>TERC.test(x.equipe)&&!extra(x))]];
+  if(tipo==='exec') grupos.push(['🟩 *INCLUSÃO DE SERVIÇOS EXTRAS*',itens.filter(extra)]);
+  const linhas=[tipo==='exec'?'*✅ SERVIÇOS EXECUTADOS – '+dstr+'*':'*📝 PROGRAMAÇÃO DE SERVIÇOS – '+dstr+'*'];
+  let n=0; const fotos=[]; const faltas=[];
+  for(const [titulo,lista] of grupos){ if(!lista.length) continue; linhas.push('',titulo,'');
+    for(const x of lista){ n++;
+      const evD=x.eventos.filter(e=>e.data===D);
+      const st=tipo==='exec'?(evD.some(e=>e.tipo==='Concluída')?'concluida':evD.some(e=>e.tipo==='Parada')||x.sit==='parada'?'parada':'andamento'):(x.sit==='parada'?'parada':null);
+      linhas.push('*'+n+'. '+tituloFr(x)+'*'+(st?' '+ESTADO[st]:''));
+      let corpo=[];
+      if(x.otb){ const o=OT.find(o=>o.data===D); corpo.push(o&&tipo==='exec'?'Vias atendidas: '+o.vias.join(', '):'Continuidade da Operação Tapa-Buraco sob demanda'); }
+      else if(tipo==='exec'){ const ex=evD.filter(e=>e.tipo==='Execução'&&e.texto).map(e=>e.texto); const cc=evD.filter(e=>(e.tipo==='Concluída'||e.tipo==='Início'||e.tipo==='Nota')&&e.texto).map(e=>e.texto);
+        if(ex.length) corpo=corpo.concat(ex); else if(st==='parada'){ const p=x.paradaAgora||evD.find(e=>e.tipo==='Parada'); corpo.push('Operação pausada'+(p&&p.motivo?': '+p.motivo.toLowerCase():'')); } else { corpo.push(cc[0]||((st==='concluida'?'':'Continuidade: ')+(x.execucao||x.descricao))); if(!cc.length&&!x.execucao) faltas.push(n+'. '+x.local); } }
+      else corpo.push(x.sit==='pendente'?(x.execucao||x.descricao):('Continuidade: '+(x.execucao||x.descricao)));
+      if(!x.otb&&!x.execucao&&tipo!=='exec') faltas.push(n+'. '+x.local);
+      corpo.forEach(c=>linhas.push('* *'+c.replace(/\*/g,'')+'*'));
+      linhas.push('*Responsável: '+(x.equipe||'a definir')+'*','');
+      if(tipo==='exec') mediaOf(x.id).filter(m=>m.data===D).forEach(m=>fotos.push(x.local+(m.nome?' – '+m.nome:'')));
+    } }
+  if(tipo==='exec'&&fotos.length){ linhas.push('📷 *Fotos do dia*'); fotos.forEach((f,i)=>linhas.push('Foto '+(i+1)+': '+f)); }
+  return {texto:linhas.join('\n').replace(/\n{3,}/g,'\n\n').trim(), faltas:[...new Set(faltas)]};
+}
+function renderMsgs(){
+  const box=$('msgs'); if(!box||window.__PUBLIC__) return;
+  if(box.dataset.ok) return; box.dataset.ok='1';
+  const amanha=new Date(TODAY.getTime()+DAY*(TODAY.getDay()===6?2:1));
+  const iE=el('input',{type:'date',value:iso(TODAY)}), iP=el('input',{type:'date',value:iso(amanha)});
+  const out=el('textarea',{class:'msgout',rows:'14',readonly:'','aria-label':'Mensagem gerada'}); const info=el('div',{class:'msg'});
+  const cp=el('button',{type:'button',class:'btn',onclick:async()=>{ try{ await navigator.clipboard.writeText(out.value); info.className='msg ok'; info.textContent='Copiado. Cole no WhatsApp.'; }catch(_){ out.select(); document.execCommand&&document.execCommand('copy'); info.textContent='Texto selecionado. Use copiar.'; } }},'Copiar');
+  const gera=(t,dia)=>{ const r=gerarMsg(t,dia); out.value=r.texto; info.className='msg'; info.textContent=r.faltas.length?'Falta detalhar o que foi feito em: '+r.faltas.join(', ')+'. Lance em "Registrar na frente" ou ajuste no texto.':'Pronto para revisar e copiar.'; };
+  box.append(el('h2',{},'Mensagens para o grupo ',el('small',{},'no seu formato, para revisar e colar no WhatsApp')),
+    el('div',{class:'relrow'},el('label',{},'Executados do dia',iE),el('button',{type:'button',class:'btn primary',onclick:()=>gera('exec',iE.value)},'Gerar serviços executados'),el('label',{},'Programação do dia',iP),el('button',{type:'button',class:'btn primary',onclick:()=>gera('prog',iP.value)},'Gerar programação')),
+    el('div',{style:'padding:0 16px 16px;display:grid;gap:8px'},out,el('div',{class:'crow'},cp,info)));
+}
+
 /* ---------- abas ---------- */
-const VIEWS={painel:'t-painel',programadas:'t-prog',lancamentos:'t-lanc'};
+const VIEWS={painel:'t-painel',programadas:'t-prog',campo:'t-campo',lancamentos:'t-lanc'};
 function go(name){
-  if(!VIEWS[name]||(window.__PUBLIC__&&name==='lancamentos')) name='painel';
+  if(!VIEWS[name]||(window.__PUBLIC__&&(name==='lancamentos'||name==='campo'))) name='painel';
   for(const [v,t] of Object.entries(VIEWS)){ $(v).hidden=v!==name; $(t).setAttribute('aria-selected',String(v===name)); }
   const h=name==='painel'?'':'#'+name;
   if(location.hash!==h) history.replaceState(null,'',h||location.pathname+location.search);
@@ -1332,7 +1494,7 @@ function go(name){
 }
 for(const [v,t] of Object.entries(VIEWS)) $(t).addEventListener('click',()=>go(v));
 addEventListener('hashchange',()=>go(location.hash.slice(1)||'painel'));
-if(window.__PUBLIC__){ $('t-lanc').hidden=true; document.querySelector('.foot').textContent='Toque em uma frente para ver o histórico completo dela. Versão pública só de leitura, atualizada automaticamente.'; }
+if(window.__PUBLIC__){ $('t-lanc').hidden=true; $('t-campo').hidden=true; document.querySelector('.foot').textContent='Toque em uma frente para ver o histórico completo dela. Versão pública só de leitura, atualizada automaticamente.'; }
 if(location.hash.length>1) go(location.hash.slice(1));
 
 /* ---------- filtros ---------- */
@@ -1343,7 +1505,7 @@ $('fGrupo').addEventListener('change',e=>{state.grupo=e.target.value;try{localSt
 $('limpar').addEventListener('click',()=>{state.sit=null;state.q='';state.equipe='';state.parada='';$('q').value='';$('fEquipe').value='';$('fParada').value='';render();});
 let rt; addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(renderGantt,150);});
 
-function render(){derive();fillSelects();renderAlertas();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderFalta();renderLog();refreshDet();
+function render(){derive();fillSelects();renderAlertas();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderFalta();renderCampo();renderMsgs();renderLog();refreshDet();
   $('asof').textContent=(loaded.frentes&&loaded.eventos)?(window.__PUBLIC__?'Atualizado em '+window.__PUBLIC__:'Atualizado ao vivo · '+fmt(TODAY)+'/'+TODAY.getFullYear()):'carregando…';}
 
 function banner(t){const b=$('banner'); if(!t){b.hidden=true;return;} b.textContent=t; b.hidden=false;}
@@ -1389,6 +1551,10 @@ render();
     MD=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,alvo:str(v.alvo),evento:str(v.evento),asset:str(v.asset),tipo:v.tipo==='video'?'video':'foto',nome:str(v.nome),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0,publico:v.publico===true,src:window.__PUBLIC__&&/^fotos\/[A-Za-z0-9_.-]+$/.test(str(v.src))?str(v.src):''};}).filter(m=>m.alvo&&/^[A-Za-z0-9_-]{8,64}$/.test(m.asset)&&(!window.__PUBLIC__||(m.publico&&m.src)));
     render();
   },()=>{});
+  if(!window.__PUBLIC__){
+    db.collection('recados').onSnapshot(s=>{ RC=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),quem:str(v.quem),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0,situacao:str(v.situacao)};}); renderCampo(); },()=>{});
+    db.collection('perguntas').onSnapshot(s=>{ PG=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),ref:str(v.ref),respondida:v.respondida===true,criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0};}); renderCampo(); },()=>{});
+  }
   db.collection('pendencias').onSnapshot(s=>{
     PD=s.docs.map(x=>{const v=x.data()||{};return {id:x.id,pedido:str(v.pedido),quem:str(v.quem),deQuem:str(v.deQuem),data:isoOk(v.data),local:str(v.local),resposta:str(v.resposta),situacao:str(v.situacao)||'Aberta',obs:str(v.obs),aguardando:str(v.aguardando),porque:str(v.porque),frente:str(v.frente)};});
     if(!s.metadata.fromCache) loaded.pendencias=true; done(); render();
