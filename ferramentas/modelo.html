@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Painel de Frentes – Contrato 425</title>
+<title>Contrato 425 · Sinarco Engenharia · Conceição do Mato Dentro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 
 /* Layout: cabeçalho com resumo, filtros por situação, linha do tempo (Gantt) e lista de pendências. */
@@ -231,25 +231,130 @@ dialog{max-height:calc(100vh - 40px);overflow:auto}
 .mleg .attr{margin-left:auto;font-size:11px}
 .msem{padding:0 14px 12px;font-size:13px;color:var(--muted)}
 .mpick{margin:10px 14px 0;padding:8px 12px;border-radius:8px;background:color-mix(in srgb,var(--plan) 14%,var(--surface));display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* ===== Identidade Sinarco ===== */
+:root,:root[data-theme]{
+  --brand:#29235c; --brand2:#151143; --cyan:#2aace3; --gold:#f8b03e;
+  --bg:#f4f5f9; --surface:#ffffff; --ink:#1c1b33; --muted:#5f6175; --line:#e1e3ec; --accent:#29235c; --link:#1b84b8;
+  --run:#2b8a5e; --pause:#e08a1e; --pend:#6a63b8; --done:#9ea3b4; --plan:#2aace3; --risk:#c8413b;
+  --runbg:#e4f3ec; --pausebg:#fdf0dc; --pendbg:#ecebf7; --donebg:#eef0f4;
+  --display:"Poppins","Segoe UI",system-ui,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+}
+body{background:var(--bg);font-size:14px}
+a{color:var(--link)}
+.wrap{padding-top:22px}
+/* topo */
+.top{background:#fff;border-bottom:1px solid var(--line)}
+.topin{max-width:1280px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px 28px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:16px}
+.brand img{height:56px;width:auto;display:block}
+.slogan{font:500 13px var(--display);color:var(--brand);border-left:2px solid var(--gold);padding-left:14px;max-width:190px;line-height:1.3}
+.cinfo{display:flex;gap:10px 28px;margin:0;flex-wrap:wrap}
+.cinfo div{display:grid;gap:1px}
+.cinfo dt{font:600 10.5px var(--display);letter-spacing:.8px;text-transform:uppercase;color:var(--cyan)}
+.cinfo dd{margin:0;font:500 13.5px var(--display);color:var(--brand)}
+/* faixa com foto */
+.band{background:linear-gradient(90deg,rgba(21,17,67,.96) 0%,rgba(41,35,92,.9) 48%,rgba(41,35,92,.62) 100%),url(marca/capa.jpg) center 60%/cover,var(--brand);color:#fff}
+.bandin{max-width:1280px;margin:0 auto;padding:30px 16px 22px}
+.kicker{display:inline-block;font:500 12.5px var(--display);color:#fff;border-left:3px solid var(--cyan);padding:2px 10px;background:rgba(255,255,255,.08)}
+.band h1{font:700 32px/1.15 var(--display);color:#fff;margin:12px 0 6px;letter-spacing:0}
+.band .sub{color:rgba(255,255,255,.82);font-size:13.5px}
+.band .tabs{max-width:1280px;margin:0 auto;padding:0 16px;border:0;gap:2px}
+.band .tab{font:500 14.5px var(--display);color:rgba(255,255,255,.78);padding:11px 18px;border-bottom:3px solid transparent;border-radius:0}
+.band .tab:hover{color:#fff;background:rgba(255,255,255,.06)}
+.band .tab[aria-selected="true"]{color:#fff;border-bottom-color:var(--gold);background:rgba(255,255,255,.1)}
+.band .tab[hidden]{display:none}
+@media (max-width:640px){.band h1{font-size:24px}.bandin{padding:22px 16px 16px}.slogan{display:none}.brand img{height:46px}.band .tab{padding:10px 12px;font-size:13.5px}}
+/* cartões e títulos */
+.card{border-radius:6px;border-color:var(--line);box-shadow:0 1px 2px rgba(28,27,51,.04)}
+.card h2{font:600 16px/1.25 var(--display);color:var(--brand);padding:14px 16px 12px;position:relative}
+.card h2::after{content:"";position:absolute;left:16px;bottom:-1px;width:44px;height:3px;background:var(--gold)}
+.card h2 small{font:400 12.5px var(--body);color:var(--muted)}
+.tiles{gap:12px}
+.tile{border-radius:6px;border:1px solid var(--line);border-top:4px solid var(--c);border-left-width:1px;padding:14px 16px}
+.tile .n{font:600 32px/1 var(--display);color:var(--brand)}
+.tile .l{font:500 14px var(--display);color:var(--ink)}
+.bar{border-radius:6px}
+.btn{border-radius:4px}
+.btn.primary{background:var(--brand);border-color:var(--brand)}
+.btn.primary:hover{background:var(--brand2)}
+.btn[aria-pressed="true"],.mtabs .btn.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.pill{border-radius:3px;font-weight:600;letter-spacing:.2px}
+.tab{font-family:var(--display)}
+.grp{font:600 11.5px var(--display);color:var(--brand);letter-spacing:.8px}
+.seg{border-radius:3px}
+dialog{border-radius:8px}
+.dhead{border-top:4px solid var(--brand)}
+.dhead h3{font:600 18px/1.25 var(--display);color:var(--brand)}
+.dhead .sub{color:var(--cyan);font:600 11.5px var(--display);letter-spacing:.5px;text-transform:uppercase}
+.hist h4{font:600 14px var(--display);color:var(--brand)}
+.quick textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:6px 8px;width:100%;min-height:60px;resize:vertical}
+.quick .hint{margin:0;font-size:12px;color:var(--muted)}
+.falta{display:inline-block;margin-left:6px;font:600 10.5px var(--body);color:#a4520f;background:#fdf0dc;border:1px solid #f3c98c;border-radius:3px;padding:0 5px;vertical-align:1px}
+/* aguardando Move / Prefeitura */
+.aglist{display:grid}
+.agitem{display:grid;grid-template-columns:78px 1fr;gap:14px;align-items:start;text-align:left;font:inherit;color:inherit;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 16px;cursor:pointer}
+.agitem:last-child{border-bottom:0}
+.agitem:hover{background:color-mix(in srgb,var(--cyan) 6%,#fff)}
+.agd{display:grid;justify-items:center;font-size:11px;color:var(--muted);border-right:1px solid var(--line);padding-right:12px}
+.agd b{font:600 26px/1 var(--display);color:var(--pause)}
+.agt{display:grid;gap:2px}
+.agp{font-weight:600;font-size:13.5px}
+.ags{font-size:13px;color:var(--ink)}
+.agm{font-size:12px;color:var(--muted)}
+/* programadas */
+.progwrap{display:grid;gap:16px}
+.pclist{display:grid}
+.pcard{display:grid;grid-template-columns:72px 1fr auto;gap:14px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);cursor:pointer}
+.pcard:last-child{border-bottom:0}
+.pcard:hover{background:color-mix(in srgb,var(--cyan) 6%,#fff)}
+.pcd{display:grid;justify-items:center;border:1px solid var(--line);border-top:3px solid var(--plan);border-radius:4px;padding:6px 4px;font-size:11px;color:var(--muted)}
+.pcd b{font:600 17px var(--display);color:var(--brand)}
+.pcd.atras{border-top-color:var(--pause)}
+.pct{font-weight:600}
+.pcs{font-size:13px}
+.pce{font-size:12.5px;color:var(--muted);margin-top:2px}
+.pcm{font-size:12px;color:var(--muted);margin-top:3px}
+@media (max-width:560px){.pcard{grid-template-columns:62px 1fr}.pcard .btn{grid-column:2}}
+/* rodapé */
+.rodape{background:var(--brand2);color:rgba(255,255,255,.8);margin-top:8px}
+.rodin{max-width:1280px;margin:0 auto;padding:20px 16px;display:flex;justify-content:space-between;gap:8px 24px;flex-wrap:wrap;font-size:12.5px;border-top:3px solid var(--gold)}
+.rodin b{font:600 14px var(--display);color:#fff;margin-right:10px}
+.foot{font-size:12.5px}
+header.top{display:block}
+.bar .qbox{flex:2 1 280px}
+.wrap,.view{grid-template-columns:minmax(0,1fr)}
+.view>*{min-width:0}
+#faltadet .logrow{grid-template-columns:96px 1fr auto}
+.bar select{max-width:100%;min-width:0}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div>
-      <h1>Frentes de serviço · Contrato 425</h1>
-      <div class="sub">Sinarco · fiscalização Move · Prefeitura de Conceição do Mato Dentro · <span id="asof">carregando…</span></div>
-    </div>
-  </header>
-  <div class="banner" id="banner" hidden></div>
-  <div class="tabs" role="tablist">
-    <button class="tab" role="tab" id="t-painel" aria-selected="true" aria-controls="painel" type="button">Painel</button>
-    <button class="tab" role="tab" id="t-lanc" aria-selected="false" aria-controls="lancamentos" type="button">Lançamentos</button>
+<header class="top">
+  <div class="topin">
+    <div class="brand"><img src="marca/logo.png" alt="Sinarco Engenharia" width="409" height="240"><span class="slogan">Excelência em Engenharia e Construção</span></div>
+    <dl class="cinfo"><div><dt>Contrato</dt><dd>425</dd></div><div><dt>Cliente</dt><dd>Prefeitura de Conceição do Mato Dentro</dd></div><div><dt>Fiscalização</dt><dd>Move</dd></div></dl>
   </div>
-
+</header>
+<div class="band">
+  <div class="bandin">
+    <span class="kicker">Sede e distritos · manutenção urbana e infraestrutura</span>
+    <h1>Acompanhamento das frentes de serviço</h1>
+    <div class="sub"><span id="asof">carregando…</span></div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t-painel" aria-selected="true" aria-controls="painel" type="button">Painel</button>
+    <button class="tab" role="tab" id="t-prog" aria-selected="false" aria-controls="programadas" type="button">Programadas</button>
+    <button class="tab" role="tab" id="t-lanc" aria-selected="false" aria-controls="lancamentos" type="button">Lançamentos</button>
+  </nav>
+</div>
+<div class="wrap">
+  <div class="banner" id="banner" hidden></div>
   <div class="view" id="painel" role="tabpanel" aria-labelledby="t-painel">
     <section class="card alertas" id="alertas" hidden aria-label="Pontos de atenção"></section>
     <section class="tiles" id="tiles" aria-label="Resumo por situação"></section>
+    <section class="card aguardando" id="aguardando" hidden aria-label="Aguardando retorno da fiscalização ou da Prefeitura"></section>
     <div class="bar" role="group" aria-label="Filtros">
       <div class="qbox"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg><input type="search" id="q" placeholder="Buscar rua, serviço, equipe ou frente…" aria-label="Buscar" autocomplete="off"></div>
       <label for="fEquipe">Equipe</label>
@@ -283,10 +388,15 @@ dialog{max-height:calc(100vh - 40px);overflow:auto}
     <p class="foot">Toque em uma frente para ver o histórico completo dela. Paradas, retomadas e novas frentes são lançadas na aba Lançamentos.</p>
   </div>
 
+  <div class="view" id="programadas" role="tabpanel" aria-labelledby="t-prog" hidden>
+    <div class="progwrap" id="proglist"></div>
+  </div>
+
   <div class="view" id="lancamentos" role="tabpanel" aria-labelledby="t-lanc" hidden>
+    <section class="card" id="faltadet" hidden></section>
     <div class="forms">
       <form class="card" id="formEv" novalidate>
-        <h2>Registrar ocorrência numa frente <small>parou, voltou, chuva, falta de material…</small></h2>
+        <h2>Registrar na frente <small>o que foi feito no dia, parou, voltou, nova previsão…</small></h2>
         <div class="fgrid">
           <label class="full" for="evFrente">Frente<select id="evFrente" required></select></label>
           <label for="evData">Data<input type="date" id="evData" required></label>
@@ -294,7 +404,7 @@ dialog{max-height:calc(100vh - 40px);overflow:auto}
           <label for="evMotivo">Motivo<select id="evMotivo"></select></label>
           <label for="evQuem">Quem pediu ou decidiu<input id="evQuem" list="pessoas" placeholder="ex.: Patrick (Move)"></label>
           <label for="evPrev" id="lbPrev">Previsão de término<input type="date" id="evPrev"></label>
-          <label class="full" for="evTexto">Descrição<textarea id="evTexto" placeholder="ex.: Patrick parou a frente porque priorizou o calçamento de Itacolomi"></textarea></label>
+          <label class="full" for="evTexto">Descrição / o que foi feito<textarea id="evTexto" placeholder="ex.: Executados 42 m de meio-fio e 18 m² de passeio. Ou: Patrick parou a frente para priorizar Itacolomi."></textarea></label>
         </div>
         <div class="factions"><button class="btn primary" type="submit">Salvar ocorrência</button><span class="msg" id="evMsg" role="status"></span></div>
       </form>
@@ -303,7 +413,8 @@ dialog{max-height:calc(100vh - 40px);overflow:auto}
         <h2>Nova frente ou demanda <small>quando a demanda chega</small></h2>
         <div class="fgrid">
           <label class="full" for="frLocal">Local (rua, bairro, distrito)<input id="frLocal" required></label>
-          <label class="full" for="frDesc">Serviço<input id="frDesc" required placeholder="ex.: OTB, meio-fio e drenagem, roçada…"></label>
+          <label class="full" for="frDesc">Serviço (resumo)<input id="frDesc" required placeholder="ex.: Meio-fio, sarjeta e drenagem"></label>
+          <label class="full" for="frExec">O que está sendo executado (detalhe)<textarea id="frExec" placeholder="ex.: Demolição de 35 m de passeio danificado, regularização da base e concretagem com 8 cm. Trecho entre os nºs 120 e 180."></textarea></label>
           <label for="frQuem">Quem pediu<input id="frQuem" list="pessoas"></label>
           <label for="frOrgao">Órgão<select id="frOrgao"><option>Move (fiscalização)</option><option>Prefeitura</option><option>Sinarco</option><option>Comunidade</option><option>A confirmar</option></select></label>
           <label for="frData">Data do pedido<input type="date" id="frData"></label>
@@ -341,6 +452,7 @@ dialog{max-height:calc(100vh - 40px);overflow:auto}
     </section>
   </div>
 </div>
+<footer class="rodape"><div class="rodin"><div><b>Sinarco Engenharia</b><span>Excelência em Engenharia e Construção</span></div><div>Contrato 425 · Prefeitura de Conceição do Mato Dentro/MG · fiscalização Move</div></div></footer>
 
 <datalist id="pessoas"><option>Gleidstone Soares (Move)</option><option>Patrick (Move)</option><option>Wesley (Move)</option><option>Ana (Move)</option><option>Prefeitura</option><option>Maria (Sinarco)</option><option>Erick (Sinarco)</option><option>Morador / Ouvidoria</option></datalist>
 <datalist id="equipesList"></datalist>
@@ -360,9 +472,9 @@ const iso = x => x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+
 const TODAY = (()=>{const t=new Date();t.setHours(12,0,0,0);return t;})();
 const $ = id => document.getElementById(id);
 
-const TIPOS=['Parada','Retomada','Início','Previsão','Concluída','Nota','Pedido'];
-const TIPO_LABEL={Parada:'Frente parou',Retomada:'Frente voltou',Início:'Frente começou',Previsão:'Nova previsão de término',Concluída:'Frente concluída',Nota:'Anotação',Pedido:'Pedido recebido'};
-const TIPO_COR={Parada:'var(--pause)',Retomada:'var(--run)',Início:'var(--run)',Previsão:'var(--plan)',Concluída:'var(--done)',Nota:'var(--muted)',Pedido:'var(--ink)'};
+const TIPOS=['Execução','Parada','Retomada','Início','Previsão','Concluída','Nota','Pedido'];
+const TIPO_LABEL={'Execução':'O que foi feito (andamento)',Parada:'Frente parou',Retomada:'Frente voltou',Início:'Frente começou',Previsão:'Nova previsão de término',Concluída:'Frente concluída',Nota:'Anotação',Pedido:'Pedido recebido'};
+const TIPO_COR={'Execução':'var(--accent)',Parada:'var(--pause)',Retomada:'var(--run)',Início:'var(--run)',Previsão:'var(--plan)',Concluída:'var(--done)',Nota:'var(--muted)',Pedido:'var(--ink)'};
 const MOTIVOS=['Prioridade para outra frente','Chuva','Falta de material','Falta de equipamento','Falta de equipe','Pedido da fiscalização','Liberação ou terceiros','Outro'];
 
 const SIT = {
@@ -421,7 +533,7 @@ function filtered(){
   const terms=qTerms();
   return dem.filter(x=>(!state.sit||x.sit===state.sit)&&(!state.equipe||x.equipe===state.equipe)
     &&(!state.parada||(state.parada==='agora'?x.sit==='parada':x.pausas.length>0))
-    &&hit(terms,[x.local,x.descricao,x.equipe,x.solicitante,x.id,x.obs,x.orgao,x.prioridade,x.status].concat((x.eventos||[]).map(e=>[e.texto,e.quem,e.motivo].join(' '))).concat(x.otb?OT.map(o=>o.vias.join(' ')+' operacao tapa buraco otb'):[])));
+    &&hit(terms,[x.local,x.descricao,x.execucao,x.equipe,x.solicitante,x.id,x.obs,x.orgao,x.prioridade,x.status].concat((x.eventos||[]).map(e=>[e.texto,e.quem,e.motivo].join(' '))).concat(x.otb?OT.map(o=>o.vias.join(' ')+' operacao tapa buraco otb'):[])));
 }
 
 /* ---------- tiles ---------- */
@@ -503,9 +615,10 @@ function renderGantt(){
 function ganttRow(x,X,weeks,pxw,lo){
   const c=SIT[x.sit].c;
   let sub=x.otb?otbResumo(x):x.descricao+(x.equipe?' · '+x.equipe:'');
+  const falta=faltaDetalhe(x)&&!window.__PUBLIC__;
   const stopTxt = x.paradaAgora ? 'Parada desde '+fmt(d(x.paradaAgora.a))+' · '+(x.paradaAgora.motivo||'motivo a confirmar') : null;
   const lab=el('div',{class:'glabel',style:'--c:'+c,tabindex:'0',role:'button','aria-label':'Histórico de '+x.local},
-    el('span',{class:'dot'}), el('div',{},el('div',{class:'t'},x.local), stopTxt?el('div',{class:'s stop'},stopTxt):null, el('div',{class:'s'},sub)));
+    el('span',{class:'dot'}), el('div',{},el('div',{class:'t'},x.local), stopTxt?el('div',{class:'s stop'},stopTxt):null, el('div',{class:'s'},sub,falta?el('span',{class:'falta'},'falta detalhar'):null)));
   const tr=el('div',{class:'gtrack'});
   for(let i=0;i<weeks;i++) tr.appendChild(el('div',{class:'week',style:'left:'+(i*pxw)+'px'}));
   const ini=d(x.inicio), prev=d(x.previsao), fim=d(x.termino), ent=d(x.entrada);
@@ -543,7 +656,7 @@ function ganttRow(x,X,weeks,pxw,lo){
   const open=()=>showDet(x.id);
   lab.addEventListener('click',open); tr.addEventListener('click',open);
   lab.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
-  const tipTxt=()=>x.local+' – '+x.descricao+'\n'+x.status+(ent?' · pedido '+fmt(ent):'')+(ini?' · início '+fmt(ini):'')+' · '+(fim?'concluída '+fmt(fim):(prev?'previsão '+fmt(prev):'sem previsão de término'))+(x.pausas.length?'\n'+x.pausas.length+(x.pausas.length>1?' paradas':' parada')+' no histórico':'');
+  const tipTxt=()=>x.local+' – '+x.descricao+(x.execucao?'\n'+x.execucao:'')+'\n'+x.status+(ent?' · pedido '+fmt(ent):'')+(ini?' · início '+fmt(ini):'')+' · '+(fim?'concluída '+fmt(fim):(prev?'previsão '+fmt(prev):'sem previsão de término'))+(x.pausas.length?'\n'+x.pausas.length+(x.pausas.length>1?' paradas':' parada')+' no histórico':'');
   tr.addEventListener('mousemove',e=>{const t=e.target.closest('.seg,.otbd');tip(e,t&&t.dataset.tip?x.local+'\n'+t.dataset.tip:tipTxt());});
   tr.addEventListener('mouseleave',hideTip);
   return el('div',{class:'grow'+(x.sit==='parada'?' stopped':'')},lab,tr);
@@ -599,7 +712,7 @@ function head(id,title,pairs){
 function showDet(id){
   const x=dem.find(f=>f.id===id); if(!x){ dlg.close&&dlg.close(); return; }
   detOpen={kind:'f',id};
-  head(x.id+' · '+x.status, x.local, [['Serviço',x.descricao],['Equipe',x.equipe||'A definir'],['Quem pediu',x.solicitante?(x.solicitante+(x.orgao&&x.orgao!=='A confirmar'?' ('+x.orgao+')':'')):''],['Como chegou',x.canal],['Pedido em',x.entrada?fmt(d(x.entrada)):''],['Prioridade',x.prioridade],['Recursos',x.recursos],['Início',x.inicio?fmt(d(x.inicio)):''],['Previsão de término',x.previsao?fmt(d(x.previsao)):(x.sit==='concluida'?'':'Sem previsão de término (a definir)')],['Parada agora',x.paradaAgora?'Desde '+fmt(d(x.paradaAgora.a))+' ('+Math.round((TODAY-d(x.paradaAgora.a))/DAY)+' dias)'+(x.paradaAgora.motivo?' · '+x.paradaAgora.motivo:''):''],['Concluída em',x.termino?fmt(d(x.termino)):''],['Observações',x.obs]]);
+  head(x.id+' · '+x.status, x.local, [['Serviço',x.descricao],['O que está sendo executado',x.execucao||(window.__PUBLIC__||x.otb?'':'Falta detalhar. Use "Editar dados da frente".')],['Equipe',x.equipe||'A definir'],['Quem pediu',x.solicitante?(x.solicitante+(x.orgao&&x.orgao!=='A confirmar'&&!norm(x.solicitante).includes(norm(x.orgao).split(' ')[0])?' ('+x.orgao+')':'')):''],['Como chegou',x.canal],['Pedido em',x.entrada?fmt(d(x.entrada)):''],['Prioridade',x.prioridade],['Recursos',x.recursos],['Início',x.inicio?fmt(d(x.inicio)):''],['Previsão de término',x.previsao?fmt(d(x.previsao)):(x.sit==='concluida'?'':'Sem previsão de término (a definir)')],['Parada agora',x.paradaAgora?'Desde '+fmt(d(x.paradaAgora.a))+' ('+Math.round((TODAY-d(x.paradaAgora.a))/DAY)+' dias)'+(x.paradaAgora.motivo?' · '+x.paradaAgora.motivo:''):''],['Concluída em',x.termino?fmt(d(x.termino)):''],['Observações',x.obs]]);
   if(x.otb) dextra.appendChild(otbSection());
   const ms=mediaSection(x.id); if(ms) dextra.appendChild(ms);
   // histórico
@@ -623,9 +736,11 @@ function showDet(id){
   if(canWrite!==false && db){
     const act=el('div',{class:'dact'});
     const q=quickForm(x);
+    if(detStart===x.id){ detStart=null; setTimeout(()=>{ const b=[...act.querySelectorAll('button')].find(b=>b.textContent==='Marcar início da execução'); b&&b.click(); },0); }
     act.appendChild(el('button',{class:'btn primary',type:'button',onclick:()=>{q.hidden=!q.hidden; if(!q.hidden) q.querySelector('select').focus();}},'Registrar ocorrência nesta frente'));
+    if(x.sit==='pendente') act.appendChild(el('button',{class:'btn',type:'button',onclick:()=>{q.hidden=false; const s=q.querySelector('select'); s.value='Início'; s.dispatchEvent(new Event('change')); q.querySelector('input[type=date]').focus();}},'Marcar início da execução'));
     act.appendChild(el('button',{class:'btn',type:'button',onclick:()=>editFrente(x)},'Editar dados da frente'));
-    if(!x.otb) act.appendChild(el('button',{class:'btn',type:'button',onclick:()=>marcarNoMapa(x.id)},x.geo?(x.geo.aprox?'📍 Acertar local no mapa':'📍 Mudar local no mapa'):'📍 Marcar no mapa'));
+    if(!x.otb) act.appendChild(el('button',{class:'btn',type:'button',onclick:()=>marcarNoMapa(x.id)},x.geo?(x.geo.aprox?'Acertar local no mapa':'Mudar local no mapa'):'Marcar no mapa'));
     dextra.appendChild(act); dextra.appendChild(q);
   }
   openDlg();
@@ -647,7 +762,7 @@ function quickForm(x,old){
   const mot=el('select',{},el('option',{value:''},'—'),MOTIVOS.map(m=>el('option',{},m)));
   const quem=el('input',{list:'pessoas',placeholder:'ex.: Patrick (Move)'});
   const prev=el('input',{type:'date'});
-  const texto=el('input',{placeholder:'O que aconteceu'});
+  const texto=el('textarea',{placeholder:'O que aconteceu ou o que foi feito (trecho, quantidade, material)'});
   if(old){ tipo.value=old.tipo; data.value=old.data; mot.value=old.motivo||''; quem.value=old.quem||''; prev.value=old.previsao||''; texto.value=old.texto||''; }
   const msg=el('span',{class:'msg',role:'status'});
   const lMot=el('label',{},'Motivo',mot), lPrev=el('label',{},'Nova previsão',prev);
@@ -655,11 +770,12 @@ function quickForm(x,old){
   tipo.addEventListener('change',sync); sync();
   const btn=el('button',{class:'btn primary',type:'button'},old?'Salvar alteração':'Salvar');
   const pk=AS?mediaPicker(null):null;
-  const f=el('div',{class:'quick',hidden:''},el('label',{},'O que aconteceu',tipo),el('label',{},'Data',data),lMot,lPrev,el('label',{},'Quem pediu ou decidiu',quem),el('label',{class:'full'},'Descrição',texto),pk?pk.node:null,el('div',{class:'full',style:'display:flex;gap:10px;align-items:center'},btn,msg));
+  const f=el('div',{class:'quick',hidden:''},el('label',{},'O que aconteceu',tipo),el('label',{},'Data',data),lMot,lPrev,el('label',{},'Quem pediu ou decidiu',quem),el('label',{class:'full'},'Descrição / o que foi feito',texto),pk?pk.node:null,el('div',{class:'full',style:'display:flex;gap:10px;align-items:center'},btn,msg));
   if(pk) pk.listen(f);
   btn.addEventListener('click',async()=>{
     if(!data.value){msg.className='msg err';msg.textContent='Informe a data.';return;}
     if(tipo.value==='Previsão'&&!prev.value){msg.className='msg err';msg.textContent='Informe a nova previsão.';return;}
+    if(tipo.value==='Execução'&&!texto.value.trim()){msg.className='msg err';msg.textContent='Escreva o que foi feito.';return;}
     btn.disabled=true; msg.className='msg'; msg.textContent='Salvando…';
     const body={frente:x.id,data:data.value,tipo:tipo.value,motivo:tipo.value==='Parada'?mot.value:'',quem:quem.value.trim(),texto:texto.value.trim(),previsao:tipo.value==='Previsão'?prev.value:''};
     let ok;
@@ -705,13 +821,14 @@ function showPend(id){
     sel.value=PSITS.includes(p.situacao)?p.situacao:'Aberta';
     const msg=el('span',{class:'msg',role:'status'});
     sel.addEventListener('change',async()=>{msg.className='msg';msg.textContent='Salvando…';try{await db.collection('pendencias').doc(p.id).update({situacao:sel.value});msg.textContent='';}catch(e){msg.className='msg err';msg.textContent='Não foi possível salvar.';writeErr(e);}});
-    act.appendChild(el('button',{class:'btn primary',type:'button',onclick:()=>{pf.hidden=true;hq.hidden=!hq.hidden; if(!hq.hidden) hq.querySelector('textarea').focus();}},'Adicionar ao histórico'));
+    act.appendChild(el('button',{class:'btn',type:'button',onclick:()=>{pf.hidden=true;hq.hidden=!hq.hidden; if(!hq.hidden) hq.querySelector('textarea').focus();}},'Adicionar ao histórico'));
     act.appendChild(el('button',{class:'btn',type:'button',onclick:()=>{hq.hidden=true;pf.hidden=!pf.hidden;}},'Editar dados da pendência'));
-    if(!p.frente) act.appendChild(el('button',{class:'btn',type:'button',onclick:()=>frenteDePend(p)},'Criar frente a partir desta'));
+    const pf2=!p.frente?passarForm(p):null;
+    if(pf2) act.appendChild(el('button',{class:'btn primary',type:'button',onclick:()=>{pf.hidden=true;hq.hidden=true;pf2.hidden=!pf2.hidden; if(!pf2.hidden) pf2.scrollIntoView({behavior:'smooth',block:'nearest'});}},'Passar para frente de serviço'));
     act.appendChild(el('label',{style:'display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)'},'Situação',sel));
     act.appendChild(delBtn(()=>db.collection('pendencias').doc(p.id).delete().then(()=>dlg.close())));
     act.appendChild(msg);
-    dextra.appendChild(act); dextra.appendChild(hq); dextra.appendChild(pf);
+    dextra.appendChild(act); dextra.appendChild(hq); dextra.appendChild(pf); if(pf2) dextra.appendChild(pf2);
   }
   openDlg();
 }
@@ -755,6 +872,82 @@ function pendForm(p){
     catch(e){ writeErr(e); btn.disabled=false; msg.className='msg err'; msg.textContent='Não foi possível salvar.'; }
   });
   return f;
+}
+
+let detStart=null;
+function faltaDetalhe(x){ return !x.otb && x.sit!=='concluida' && !str(x.execucao).trim(); }
+function passarForm(p){
+  const sit=el('select',{},el('option',{},'Em execução'),el('option',{},'Programada'));
+  const data=el('input',{type:'date',value:iso(TODAY)}); const lData=el('label',{},'Entrou em execução em',data);
+  sit.addEventListener('change',()=>{ lData.firstChild.textContent=sit.value==='Programada'?'Programada para':'Entrou em execução em'; });
+  const eq=el('input',{list:'equipesList',placeholder:'Equipe ou encarregado'});
+  const local=el('input',{value:p.local||''}); const serv=el('input',{value:p.pedido||'',placeholder:'Resumo do serviço'});
+  const exe=el('textarea',{placeholder:'O que será feito: trecho, quantidade, material, observações'});
+  const msg=el('span',{class:'msg',role:'status'}); const btn=el('button',{class:'btn primary',type:'button'},'Criar frente');
+  const f=el('div',{class:'quick',hidden:''},el('label',{},'Situação',sit),lData,el('label',{},'Equipe',eq),el('label',{class:'full'},'Local',local),el('label',{class:'full'},'Serviço',serv),el('label',{class:'full'},'O que está sendo executado',exe),
+    el('p',{class:'hint full'},'A pendência fica marcada como "Virou frente". Fotos, vídeos, localização e histórico vão junto.'),el('div',{class:'full',style:'display:flex;gap:10px;align-items:center'},btn,msg));
+  btn.addEventListener('click',async()=>{
+    if(!local.value.trim()||!serv.value.trim()){msg.className='msg err';msg.textContent='Preencha o local e o serviço.';return;}
+    if(!data.value){msg.className='msg err';msg.textContent='Informe a data.';return;}
+    btn.disabled=true; msg.className='msg'; msg.textContent='Criando a frente…';
+    try{
+      const n=Math.max(0,...FR.map(f=>parseInt(String(f.id).replace(/\D/g,''),10)||0))+1; const id='D-'+String(n).padStart(3,'0');
+      const g=str(p.local).match(/(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
+      const orgao=p.deQuem==='Move'?'Move (fiscalização)':p.deQuem==='Prefeitura'?'Prefeitura':p.deQuem==='Sinarco'?'Sinarco':'A confirmar';
+      const body={local:local.value.trim(),descricao:serv.value.trim(),execucao:exe.value.trim(),solicitante:p.quem||'',orgao,entrada:p.data||null,canal:'Grupo Move/Sinarco',equipe:eq.value.trim(),prioridade:'',status:sit.value,inicio:data.value,previsao:null,termino:null,recursos:'',obs:'Veio da pendência '+p.id+'.'};
+      if(g) body.geo={lat:+g[1],lng:+g[2],aprox:false};
+      await db.collection('frentes').doc(id).set(body);
+      if(p.data) await saveEvent({frente:id,data:p.data,tipo:'Pedido',motivo:'',quem:p.quem||'',texto:p.pedido,previsao:''});
+      for(const h of p.hist.filter(h=>!h.interna)) await saveEvent({frente:id,data:h.data||p.data||iso(TODAY),tipo:'Nota',motivo:'',quem:h.quem||'',texto:h.texto,previsao:''});
+      if(sit.value==='Em execução') await saveEvent({frente:id,data:data.value,tipo:'Início',motivo:'',quem:'',texto:'Veio da pendência '+p.id+'.',previsao:''});
+      for(const m of mediaOf(p.id)) await db.collection('midia').doc(newMid()).set({alvo:id,evento:'',asset:m.asset,tipo:m.tipo,nome:m.nome,data:m.data||iso(TODAY),criadoEm:Date.now(),publico:m.publico===true});
+      await db.collection('pendencias').doc(p.id).update({situacao:'Virou frente',frente:id});
+      await db.collection('pendhist').doc(newHid(p.id)).set({pendencia:p.id,data:iso(TODAY),quem:'',texto:'Virou a frente '+id+' ('+(sit.value==='Programada'?'programada para ':'em execução desde ')+fmt(d(data.value))+').',interna:false,criadoEm:Date.now()});
+      showDet(id); if(!dem.find(x=>x.id===id)){ dlg.close(); go('painel'); }
+    }catch(e){ writeErr(e); btn.disabled=false; msg.className='msg err'; msg.textContent='Não foi possível criar a frente.'; }
+  });
+  return f;
+}
+const EXT=/move|prefeitura|fiscaliza|secretaria/i;
+function renderAguardando(){
+  const box=$('aguardando'); if(!box) return; box.textContent='';
+  const list=penAbertas.filter(p=>EXT.test(p.aguardando||'')).map(p=>{const t=ultimaAtividade(p);return {p,t,dias:t?Math.round((TODAY-t)/DAY):0,total:p.data?Math.round((TODAY-d(p.data))/DAY):0};}).sort((a,b)=>b.total-a.total);
+  box.hidden=!list.length; if(!list.length) return;
+  box.appendChild(el('h2',{},'Aguardando retorno da fiscalização ou da Prefeitura ',el('small',{},list.length+(list.length===1?' item':' itens')+' · mais antigos primeiro')));
+  const ul=el('div',{class:'aglist'});
+  for(const o of list){ const p=o.p;
+    const it=el('button',{type:'button',class:'agitem',onclick:()=>showPend(p.id)},
+      el('span',{class:'agd'},el('b',{},String(o.total)),o.total===1?'dia em aberto':'dias em aberto'),
+      el('span',{class:'agt'},el('span',{class:'agp'},p.pedido),el('span',{class:'ags'},(p.porque||'')),el('span',{class:'agm'},p.id+' · aguardando '+p.aguardando+' · pedido em '+fmt(d(p.data))+(o.t&&p.data&&iso(o.t)!==p.data?' · última movimentação '+fmt(o.t):''))));
+    ul.appendChild(it); }
+  box.appendChild(ul);
+}
+function renderProg(){
+  const box=$('proglist'); if(!box) return; box.textContent='';
+  const terms=qTerms();
+  const prog=dem.filter(x=>x.sit==='pendente'&&x.status==='Programada'&&hit(terms,[x.local,x.descricao,x.execucao,x.equipe])).sort((a,b)=>(d(a.inicio)||d(a.previsao)||new Date(9e15))-(d(b.inicio)||d(b.previsao)||new Date(9e15)));
+  const novas=dem.filter(x=>x.sit==='pendente'&&x.status!=='Programada'&&hit(terms,[x.local,x.descricao,x.execucao,x.equipe])).sort((a,b)=>(d(a.entrada)||0)-(d(b.entrada)||0));
+  $('t-prog').textContent='Programadas'+(prog.length?' ('+prog.length+')':'');
+  const card=x=>{ const dt=d(x.inicio)||d(x.previsao); const can=canWrite!==false&&db&&!window.__PUBLIC__;
+    const atras=dt&&dt<TODAY;
+    return el('div',{class:'pcard',tabindex:'0',role:'button',onclick:()=>showDet(x.id),onkeydown:e=>{if(e.key==='Enter'){showDet(x.id);}}},
+      el('div',{class:'pcd'+(atras?' atras':'')},dt?el('b',{},fmt(dt)):el('b',{},'—'),dt?(atras?'data passou':(iso(dt)===iso(TODAY)?'hoje':['dom','seg','ter','qua','qui','sex','sáb'][dt.getDay()])):'sem data'),
+      el('div',{class:'pcb'},el('div',{class:'pct'},x.local),el('div',{class:'pcs'},x.descricao),x.execucao?el('div',{class:'pce'},x.execucao):(can?el('span',{class:'falta'},'falta detalhar'):null),
+        el('div',{class:'pcm'},[x.equipe?'Equipe: '+x.equipe:'Equipe a definir',x.solicitante?'Pedido por '+x.solicitante:'',x.entrada?'em '+fmt(d(x.entrada)):''].filter(Boolean).join(' · '))),
+      can?el('button',{class:'btn',type:'button',onclick:e=>{e.stopPropagation(); detStart=x.id; showDet(x.id);}},'Iniciar execução'):null);
+  };
+  const sec=(t,sub,arr)=>{ const s=el('section',{class:'card'},el('h2',{},t+' ',el('small',{},sub))); const l=el('div',{class:'pclist'}); if(!arr.length) l.appendChild(el('div',{class:'empty'},'Nada por aqui.')); arr.forEach(x=>l.appendChild(card(x))); s.appendChild(l); return s; };
+  box.appendChild(sec('Programadas',prog.length+(prog.length===1?' frente com data':' frentes')+' · em ordem de data',prog));
+  box.appendChild(sec('Novas, aguardando programação',novas.length+(novas.length===1?' pedido':' pedidos'),novas));
+}
+function renderFalta(){
+  const box=$('faltadet'); if(!box) return; box.textContent='';
+  const list=dem.filter(faltaDetalhe);
+  box.hidden=!list.length||window.__PUBLIC__; if(box.hidden) return;
+  box.appendChild(el('h2',{},'Falta detalhar o serviço ',el('small',{},list.length+(list.length===1?' frente':' frentes')+' sem "O que está sendo executado". Isso aparece no relatório e no site.')));
+  const l=el('div',{class:'loglist'});
+  list.forEach(x=>l.appendChild(el('div',{class:'logrow'},el('span',{class:'pill',style:'--c:'+SIT[x.sit].c+';--bgc:var(--bg)'},x.status),el('div',{},el('b',{},x.local),el('div',{class:'m'},x.descricao+(x.equipe?' · '+x.equipe:''))),el('button',{class:'btn',type:'button',onclick:()=>editFrente(x)},'Detalhar'))));
+  box.appendChild(l);
 }
 let fromPend=null;
 function frenteDePend(p){
@@ -843,7 +1036,7 @@ function mediaPicker(form){
   const sync=()=>{info.textContent=list.length?(list.length===1?'1 arquivo: ':list.length+' arquivos: ')+list.map(f=>f.name||'imagem colada').join(', '):'Nenhum anexo. Você também pode colar uma imagem aqui (Ctrl+V).';clr.hidden=!list.length;};
   inp.addEventListener('change',()=>{list=list.concat([...inp.files]);inp.value='';sync();});
   clr.addEventListener('click',()=>{list=[];sync();});
-  const btn=el('button',{type:'button',class:'btn'},'📷 Anexar fotos ou vídeos');
+  const btn=el('button',{type:'button',class:'btn'},'Anexar fotos ou vídeos');
   btn.addEventListener('click',()=>inp.click());
   const node=el('div',{class:'full picker'},btn,inp,info,clr);
   const listen=fm=>fm.addEventListener('paste',e=>{const fs=[...(e.clipboardData&&e.clipboardData.files||[])].filter(f=>/^(image|video)\//.test(f.type)); if(fs.length){e.preventDefault();e.stopPropagation();list=list.concat(fs);sync();}});
@@ -856,7 +1049,7 @@ function addMediaBtn(alvo,msgEl){
   const inp=el('input',{type:'file',accept:'image/*,video/*',multiple:'',hidden:''});
   const st=(t,c)=>{msgEl.className='msg'+(c?' '+c:'');msgEl.textContent=t;};
   inp.addEventListener('change',async()=>{const fs=[...inp.files];inp.value='';await uploadMedia(fs,alvo,'',null);});
-  return el('span',{},el('button',{class:'btn',type:'button',onclick:()=>inp.click()},'📷 Adicionar fotos ou vídeos'),inp);
+  return el('span',{},el('button',{class:'btn',type:'button',onclick:()=>inp.click()},'Adicionar fotos ou vídeos'),inp);
 }
 // colar imagem com o detalhe aberto
 document.addEventListener('paste',async e=>{
@@ -942,17 +1135,22 @@ async function gerarRelatorio(ini,fim,status){
   const li=arr=>arr.length?'<ul>'+arr.join('')+'</ul>':'<p class="v">Nada no período.</p>';
   const evLi=e=>'<li><b>'+fmt(d(e.data))+'</b> · '+esc(nome(e.frente))+(e.motivo?' · '+esc(e.motivo):'')+(e.texto?' — '+esc(e.texto):'')+'</li>';
   const ativos=dem.filter(x=>x.sit==='andamento'||x.sit==='parada');
+  const exF=[...new Set(evs.filter(e=>e.tipo!=='Pedido').map(e=>e.frente))].map(id=>dem.find(x=>x.id===id)).filter(x=>x&&!x.otb).sort((p,q)=>p.local.localeCompare(q.local));
+  const exHtml=exF.length?exF.map(x=>{ const es=evs.filter(e=>e.frente===x.id&&e.tipo!=='Pedido');
+    return '<div class="fx"><h3>'+esc(x.local)+'</h3><div class="fs">'+esc(x.descricao)+(x.equipe?' · equipe: '+esc(x.equipe):'')+' · situação: '+esc(x.status)+'</div>'+
+      (x.execucao?'<p class="fe">'+esc(x.execucao)+'</p>':'')+
+      '<ul>'+es.map(e=>'<li><b>'+fmt(d(e.data))+'</b> · '+esc(TIPO_LABEL[e.tipo]||e.tipo)+(e.motivo?' ('+esc(e.motivo)+')':'')+(e.texto?': '+esc(e.texto):'')+'</li>').join('')+'</ul></div>'; }).join(''):'<p class="v">Nenhum lançamento nas frentes no período.</p>';
   const porEq={}; ativos.forEach(x=>{(porEq[x.equipe||'Equipe a definir']=porEq[x.equipe||'Equipe a definir']||[]).push(x);});
   const html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Relatório semanal · Contrato 425 · '+fmt(a)+' a '+fmt(b)+'</title><style>'+
-  'body{font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#18202b;max-width:900px;margin:0 auto;padding:28px 22px}h1{font-size:24px;margin:0 0 2px}h2{font-size:17px;margin:26px 0 8px;padding-bottom:4px;border-bottom:2px solid #1f6feb}.sub,.v{color:#5b6573}.k{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:16px 0}.k div{border:1px solid #d8dee6;border-radius:8px;padding:10px 12px}.k b{display:block;font-size:24px}ul{margin:4px 0;padding-left:20px}li{margin:3px 0}.otb li b{display:inline-block;min-width:44px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}.g figure{margin:0;break-inside:avoid}.g img{width:100%;border-radius:6px;border:1px solid #d8dee6}.g figcaption{font-size:12px;color:#5b6573}.pb{position:fixed;top:12px;right:12px;font:inherit;padding:8px 14px;border-radius:8px;border:0;background:#1f6feb;color:#fff;cursor:pointer}@media print{.pb{display:none}body{padding:0}h2{break-after:avoid}}'+
+  'body{font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#18202b;max-width:900px;margin:0 auto;padding:28px 22px}h1{font-size:24px;margin:0 0 2px}h2{font-size:17px;margin:26px 0 8px;padding-bottom:4px;border-bottom:2px solid #f8b03e;color:#29235c}h1{color:#29235c}.sub,.v{color:#5b6573}.k{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:16px 0}.k div{border:1px solid #d8dee6;border-radius:8px;padding:10px 12px}.k b{display:block;font-size:24px}ul{margin:4px 0;padding-left:20px}li{margin:3px 0}.otb li b{display:inline-block;min-width:44px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}.g figure{margin:0;break-inside:avoid}.g img{width:100%;border-radius:6px;border:1px solid #d8dee6}.g figcaption{font-size:12px;color:#5b6573}.fx{border-left:3px solid #2aace3;padding:2px 0 2px 12px;margin:12px 0}.fx h3{margin:0;font-size:15px}.fs{color:#5b6573;font-size:13px}.fe{margin:4px 0}.falta{color:#b4541a;font-style:italic}.pb{position:fixed;top:12px;right:12px;font:inherit;padding:8px 14px;border-radius:8px;border:0;background:#29235c;color:#fff;cursor:pointer}@media print{.pb{display:none}body{padding:0}h2{break-after:avoid}}'+
   '</style></head><body><button class="pb" onclick="window.print()">Imprimir / salvar em PDF</button>'+
-  '<h1>Relatório semanal · Contrato 425</h1><div class="sub">Sinarco · fiscalização Move · Prefeitura de Conceição do Mato Dentro · período '+fmt(a)+' a '+fmt(b)+'/'+b.getFullYear()+' · gerado em '+fmt(TODAY)+'</div>'+
+  '<h1>Relatório semanal · Contrato 425</h1><div class="sub">Sinarco Engenharia · fiscalização Move · Prefeitura de Conceição do Mato Dentro · período '+fmt(a)+' a '+fmt(b)+'/'+b.getFullYear()+' · gerado em '+fmt(TODAY)+'</div>'+
   '<div class="k"><div><b>'+ativos.filter(x=>x.sit==='andamento').length+'</b>frentes em andamento</div><div><b>'+dem.filter(x=>x.sit==='parada').length+'</b>frentes paradas</div><div><b>'+conc.length+'</b>concluídas no período</div><div><b>'+ini_.length+'</b>iniciadas no período</div><div><b>'+penAbertas.length+'</b>pendências abertas</div><div><b>'+otb.reduce((s,o)=>s+o.vias.length,0)+'</b>vias com OTB no período</div></div>'+
-  '<h2>Concluídas no período</h2>'+li(conc.map(evLi))+
+  '<h2>O que foi executado no período</h2>'+exHtml+'<h2>Concluídas no período</h2>'+li(conc.map(evLi))+
   '<h2>Iniciadas no período</h2>'+li(ini_.map(evLi))+
   '<h2>Paradas e retomadas</h2>'+li(par.concat(ret).sort((p,q)=>p.data<q.data?-1:1).map(e=>'<li><b>'+fmt(d(e.data))+'</b> · '+(e.tipo==='Parada'?'Parou':'Voltou')+' · '+esc(nome(e.frente))+(e.motivo?' · '+esc(e.motivo):'')+(e.texto?' — '+esc(e.texto):'')+'</li>'))+
   '<h2>Operação Tapa-Buraco sob demanda</h2>'+(otb.length?'<ul class="otb">'+otb.map(o=>'<li><b>'+fmt(d(o.data))+'</b> '+esc(o.vias.join(', '))+'</li>').join('')+'</ul>':'<p class="v">Sem registro na planilha no período.</p>')+
-  '<h2>Frentes ativas por equipe</h2>'+Object.keys(porEq).sort().map(eq=>'<p style="margin:8px 0 2px"><b>'+esc(eq)+'</b></p><ul>'+porEq[eq].map(x=>'<li>'+esc(x.local)+' · '+esc(x.descricao)+(x.sit==='parada'?' <b>(parada'+(x.paradaAgora&&x.paradaAgora.motivo?': '+esc(x.paradaAgora.motivo):'')+')</b>':'')+'</li>').join('')+'</ul>').join('')+
+  '<h2>Frentes ativas por equipe</h2>'+Object.keys(porEq).sort().map(eq=>'<p style="margin:8px 0 2px"><b>'+esc(eq)+'</b></p><ul>'+porEq[eq].map(x=>'<li>'+esc(x.local)+' · '+esc(x.descricao)+(x.execucao?' <span class="v">— '+esc(x.execucao)+'</span>':'')+(x.sit==='parada'?' <b>(parada'+(x.paradaAgora&&x.paradaAgora.motivo?': '+esc(x.paradaAgora.motivo):'')+')</b>':'')+'</li>').join('')+'</ul>').join('')+
   '<h2>Pontos de atenção</h2>'+li(alP.map(o=>'<li>Pendência '+esc(o.p.id)+' sem resposta há '+o.dias+' dias: '+esc(o.p.pedido)+' (aguardando '+esc(o.p.aguardando||'a definir')+')</li>').concat(alF.map(o=>'<li>'+esc(o.x.local)+' parada há '+o.dias+' dias ('+esc(o.x.paradaAgora.motivo||'motivo a confirmar')+')</li>')))+
   '<h2>Pendências abertas</h2>'+li(penAbertas.map(p=>'<li><b>'+esc(p.id)+'</b> · '+esc(p.pedido)+' · '+esc(p.situacao)+(p.aguardando?' · aguardando '+esc(p.aguardando):'')+(p.porque?' — '+esc(p.porque):'')+'</li>'))+
   '<h2>Fotos do período</h2>'+(imgs.length?'<div class="g">'+imgs.map(i=>'<figure><img src="'+i.u+'" alt=""><figcaption>'+esc(i.cap)+'</figcaption></figure>').join('')+'</div>':'<p class="v">Nenhuma foto lançada no período.</p>')+
@@ -1049,6 +1247,7 @@ $('formEv').addEventListener('submit',async e=>{
   if(!fr) return msg('evMsg','Escolha a frente.','err');
   if(!data) return msg('evMsg','Informe a data.','err');
   if(tipo==='Previsão'&&!$('evPrev').value) return msg('evMsg','Informe a nova previsão.','err');
+  if(tipo==='Execução'&&!$('evTexto').value.trim()) return msg('evMsg','Escreva o que foi feito.','err');
   const b=e.submitter||$('formEv').querySelector('button[type=submit]'); b.disabled=true; msg('evMsg','Salvando…');
   const ok=await saveEvent({frente:fr,data,tipo,motivo:tipo==='Parada'?$('evMotivo').value:'',quem:$('evQuem').value.trim(),texto:$('evTexto').value.trim(),previsao:tipo==='Previsão'?$('evPrev').value:''});
   if(ok&&PK.formEv&&PK.formEv.files.length){ await uploadMedia(PK.formEv.files,fr,ok,fst('evMsg')); PK.formEv.reset(); b.disabled=false; $('evTexto').value=''; $('evQuem').value=''; $('evPrev').value=''; return; }
@@ -1059,7 +1258,7 @@ $('formEv').addEventListener('submit',async e=>{
 let editing=null;
 function editFrente(x){
   editing=x.id; dlg.close();
-  $('frLocal').value=x.local||''; $('frDesc').value=x.descricao||''; $('frQuem').value=x.solicitante||'';
+  $('frLocal').value=x.local||''; $('frDesc').value=x.descricao||''; $('frExec').value=x.execucao||''; $('frQuem').value=x.solicitante||'';
   setSel('frOrgao',x.orgao); $('frData').value=x.entrada||''; setSel('frCanal',x.canal); $('frEquipe').value=x.equipe||'';
   setSel('frPrio',x.prioridade); setSel('frStatus',FR.find(f=>f.id===x.id).status); $('frInicio').value=FR.find(f=>f.id===x.id).inicio||''; $('frPrev').value=FR.find(f=>f.id===x.id).previsao||''; setSel('frRec',x.recursos); $('frObs').value=x.obs||'';
   $('formFr').querySelector('h2').firstChild.textContent='Editar frente '+x.id+' ';
@@ -1075,7 +1274,7 @@ $('formFr').addEventListener('submit',async e=>{
   if(!local||!desc) return msg('frMsg','Preencha o local e o serviço.','err');
   if(!db) return msg('frMsg','O painel está sem conexão com os dados.','err');
   const status=$('frStatus').value;
-  const body={local,descricao:desc,solicitante:$('frQuem').value.trim(),orgao:$('frOrgao').value,entrada:$('frData').value||null,canal:$('frCanal').value,equipe:$('frEquipe').value.trim(),prioridade:$('frPrio').value,status,inicio:$('frInicio').value||null,previsao:$('frPrev').value||null,recursos:$('frRec').value,obs:$('frObs').value.trim()};
+  const body={local,descricao:desc,execucao:$('frExec').value.trim(),solicitante:$('frQuem').value.trim(),orgao:$('frOrgao').value,entrada:$('frData').value||null,canal:$('frCanal').value,equipe:$('frEquipe').value.trim(),prioridade:$('frPrio').value,status,inicio:$('frInicio').value||null,previsao:$('frPrev').value||null,recursos:$('frRec').value,obs:$('frObs').value.trim()};
   const b=$('formFr').querySelector('button[type=submit]'); b.disabled=true; msg('frMsg','Salvando…');
   try{
     if(editing){ const eid=editing; await db.collection('frentes').doc(eid).update(body); msg('frMsg','Frente '+eid+' atualizada.','ok'); resetFr(); if(PK.formFr&&PK.formFr.files.length){ await uploadMedia(PK.formFr.files,eid,'',fst('frMsg')); PK.formFr.reset(); } }
@@ -1123,18 +1322,18 @@ function renderLog(){
 }
 
 /* ---------- abas ---------- */
+const VIEWS={painel:'t-painel',programadas:'t-prog',lancamentos:'t-lanc'};
 function go(name){
-  const lanc=name==='lancamentos';
-  $('painel').hidden=lanc; $('lancamentos').hidden=!lanc;
-  $('t-painel').setAttribute('aria-selected',String(!lanc)); $('t-lanc').setAttribute('aria-selected',String(lanc));
-  if(location.hash!==(lanc?'#lancamentos':'') ) history.replaceState(null,'',lanc?'#lancamentos':location.pathname+location.search);
-  if(!lanc) renderGantt();
+  if(!VIEWS[name]||(window.__PUBLIC__&&name==='lancamentos')) name='painel';
+  for(const [v,t] of Object.entries(VIEWS)){ $(v).hidden=v!==name; $(t).setAttribute('aria-selected',String(v===name)); }
+  const h=name==='painel'?'':'#'+name;
+  if(location.hash!==h) history.replaceState(null,'',h||location.pathname+location.search);
+  if(name==='painel') renderGantt();
 }
-$('t-painel').addEventListener('click',()=>go('painel'));
-$('t-lanc').addEventListener('click',()=>go('lancamentos'));
-addEventListener('hashchange',()=>go(location.hash==='#lancamentos'?'lancamentos':'painel'));
-if(window.__PUBLIC__){ document.querySelector('.tabs').style.display='none'; document.querySelector('.foot').textContent='Toque em uma frente para ver o histórico completo dela. Versão pública só de leitura, atualizada automaticamente.'; }
-else if(location.hash==='#lancamentos') go('lancamentos');
+for(const [v,t] of Object.entries(VIEWS)) $(t).addEventListener('click',()=>go(v));
+addEventListener('hashchange',()=>go(location.hash.slice(1)||'painel'));
+if(window.__PUBLIC__){ $('t-lanc').hidden=true; document.querySelector('.foot').textContent='Toque em uma frente para ver o histórico completo dela. Versão pública só de leitura, atualizada automaticamente.'; }
+if(location.hash.length>1) go(location.hash.slice(1));
 
 /* ---------- filtros ---------- */
 $('q').addEventListener('input',e=>{state.q=e.target.value;render();});
@@ -1144,8 +1343,8 @@ $('fGrupo').addEventListener('change',e=>{state.grupo=e.target.value;try{localSt
 $('limpar').addEventListener('click',()=>{state.sit=null;state.q='';state.equipe='';state.parada='';$('q').value='';$('fEquipe').value='';$('fParada').value='';render();});
 let rt; addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(renderGantt,150);});
 
-function render(){derive();fillSelects();renderAlertas();renderTiles();renderDonut();renderGantt();renderMapa();renderPend();renderLog();refreshDet();
-  $('asof').textContent=(loaded.frentes&&loaded.eventos)?(window.__PUBLIC__?'versão pública só de leitura · atualizada em '+window.__PUBLIC__:'atualizado ao vivo · hoje '+fmt(TODAY)+'/'+TODAY.getFullYear()):'carregando…';}
+function render(){derive();fillSelects();renderAlertas();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderFalta();renderLog();refreshDet();
+  $('asof').textContent=(loaded.frentes&&loaded.eventos)?(window.__PUBLIC__?'Atualizado em '+window.__PUBLIC__:'Atualizado ao vivo · '+fmt(TODAY)+'/'+TODAY.getFullYear()):'carregando…';}
 
 function banner(t){const b=$('banner'); if(!t){b.hidden=true;return;} b.textContent=t; b.hidden=false;}
 function applyPerm(){
@@ -1171,7 +1370,7 @@ render();
   const done=()=>{ if(loaded.frentes&&loaded.eventos&&loaded.pendencias){ clearTimeout(timer); if(canWrite!==false||window.__PUBLIC__) banner(''); } };
   const onErr=()=>{ clearTimeout(timer); banner('A conexão com os dados caiu. Recarregue a página para continuar.'); };
   db.collection('frentes').onSnapshot(s=>{
-    FR=s.docs.map(x=>{const v=x.data()||{};return {id:x.id,local:str(v.local)||'(sem local)',descricao:str(v.descricao),solicitante:str(v.solicitante),orgao:str(v.orgao),entrada:isoOk(v.entrada),canal:str(v.canal),equipe:str(v.equipe),prioridade:str(v.prioridade),status:str(v.status)||'Nova',inicio:isoOk(v.inicio),previsao:isoOk(v.previsao),termino:isoOk(v.termino),recursos:str(v.recursos),obs:str(v.obs),otb:v.otb===true,geo:(v.geo&&isFinite(v.geo.lat)&&isFinite(v.geo.lng))?{lat:+v.geo.lat,lng:+v.geo.lng,aprox:v.geo.aprox===true}:null};});
+    FR=s.docs.map(x=>{const v=x.data()||{};return {id:x.id,local:str(v.local)||'(sem local)',descricao:str(v.descricao),execucao:str(v.execucao),solicitante:str(v.solicitante),orgao:str(v.orgao),entrada:isoOk(v.entrada),canal:str(v.canal),equipe:str(v.equipe),prioridade:str(v.prioridade),status:str(v.status)||'Nova',inicio:isoOk(v.inicio),previsao:isoOk(v.previsao),termino:isoOk(v.termino),recursos:str(v.recursos),obs:str(v.obs),otb:v.otb===true,geo:(v.geo&&isFinite(v.geo.lat)&&isFinite(v.geo.lng))?{lat:+v.geo.lat,lng:+v.geo.lng,aprox:v.geo.aprox===true}:null};});
     if(!s.metadata.fromCache) loaded.frentes=true; done(); render();
   },onErr);
   db.collection('eventos').onSnapshot(s=>{
