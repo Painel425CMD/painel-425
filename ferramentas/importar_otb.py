@@ -17,7 +17,11 @@ def bonito(s):
         elif w.islower() or (w.isupper() and len(w) > 3): out.append(w[:1].upper() + w[1:].lower())
         else: out.append(w)
     s = ' '.join(out)
-    return re.sub(r'^Mg ', 'MG-', s)
+    s = re.sub(r'^Mg ', 'MG-', s)
+    # sem tipo de via na frente: é rua (ex.: "Dom Joaquim" -> "Rua Dom Joaquim")
+    if not re.match(r'(?i)(rua|r\.|travessa|tv\.|avenida|av\.|beco|estrada|rodovia|mg|lmg|br|pra[cç]a|alameda|trevo|ponte|largo|vila|distrito)\b', s):
+        s = 'Rua ' + s
+    return s
 
 wb = openpyxl.load_workbook(sys.argv[1], read_only=True, data_only=True)
 ws = wb['Produção Diária OTB']
