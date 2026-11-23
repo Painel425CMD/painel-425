@@ -381,6 +381,49 @@ header.top{display:block}
 .grp .grpt{position:sticky;left:10px;display:inline-block}
 .fsel{min-width:0;max-width:100%}
 .fsel select{min-width:0;max-width:100%}
+/* rolagem única: sem caixas com rolagem própria */
+.gantt{max-height:none;overscroll-behavior:auto}
+.gantt.fit{overflow:visible}
+#linha-do-tempo{overflow:clip}
+.gantt.fit .ghead{top:0}
+.gantt.cards{overflow:visible;padding:0 12px 12px}
+.mwrap{max-height:none}
+.mwrap:not(.zoomed){overflow:hidden}
+@media (max-width:760px){
+  #linha-do-tempo .legendbox{display:none}
+  .mopen{display:block;width:calc(100% - 28px);margin:4px 14px 14px;padding:11px 14px;font-size:14.5px}
+  .mwrap.zoomed{max-height:70vh}
+}
+.chint{font-size:12px;color:var(--muted);margin:2px 2px 8px}
+.cgrp{font-size:11.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:14px 2px 6px}
+.fcard{border:1px solid var(--line);border-left:4px solid var(--c);border-radius:10px;background:var(--surface);margin-bottom:8px;overflow:hidden}
+.fcard.stopped{background:color-mix(in srgb,var(--pause) 6%,var(--surface))}
+.ctop{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;width:100%;padding:10px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ctop:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.ct1{display:flex;align-items:center;gap:7px}
+.ct1 .dot{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
+.ct1 b{font-size:14px;line-height:1.25;flex:1}
+.cpill{font-size:11px;font-weight:600;color:var(--c);border:1px solid color-mix(in srgb,var(--c) 45%,var(--line));border-radius:20px;padding:1px 8px;white-space:nowrap}
+.csub{font-size:12.5px;color:var(--muted)}
+.cstop{font-size:12.5px;color:var(--pause);font-weight:600}
+.cdatas{font-size:12px;color:var(--ink)}
+.cbar{position:relative;height:8px;border-radius:4px;background:color-mix(in srgb,var(--line) 60%,var(--surface));margin:3px 0 1px;overflow:hidden}
+.cbar .cs{position:absolute;top:0;bottom:0;background:var(--c);border-radius:4px}
+.cbar .cs.pz{background:repeating-linear-gradient(135deg,var(--pause) 0 4px,color-mix(in srgb,var(--pause) 45%,var(--surface)) 4px 8px)}
+.cbar .cs.pv{background:color-mix(in srgb,var(--c) 30%,var(--surface));outline:1px dashed var(--c);outline-offset:-1px}
+.cbar .ctoday{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink);opacity:.75}
+.cmais{font-size:12px;font-weight:600;color:var(--accent);margin-top:2px}
+.cdet{padding:0 12px 12px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.cdet[hidden]{display:none}
+.cbloc{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.cbloc b,.cevs>b{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+.cbloc.obs{background:var(--pendbg);border-color:color-mix(in srgb,var(--pend) 40%,var(--line))}
+.cbloc.pz{background:var(--pausebg);border-color:color-mix(in srgb,var(--pause) 45%,var(--line))}
+.cev{display:grid;grid-template-columns:44px 1fr;gap:6px;padding:5px 0 5px 8px;border-left:3px solid var(--c);margin:3px 0}
+.cev .cd{font-weight:600;font-size:12px}
+.cev i{font-style:normal;font-weight:600;color:var(--c)}
+.cdet .btn{align-self:flex-start}
+@media (max-width:640px){.band .tabs{overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap;max-width:100%}.band .tabs::-webkit-scrollbar{display:none}.band .tab{padding:10px 9px;font-size:13px;flex:none}}
 </style>
 </head>
 <body>
@@ -569,7 +612,9 @@ function derive(){
     const evs=(byFr[f.id]||[]).slice().sort((a,b)=>(a.data<b.data?-1:a.data>b.data?1:(a.criadoEm||0)-(b.criadoEm||0)));
     let status=f.status||'Nova', inicio=f.inicio, termino=f.termino, previsao=f.previsao;
     const pausas=[]; let aberta=null;
+    const hj=iso(TODAY);
     for(const e of evs){
+      if(e.data>hj){ if(e.tipo==='Início'&&(!inicio||e.data<inicio)) inicio=e.data; if(e.tipo==='Previsão'&&e.previsao) previsao=e.previsao; continue; }
       if(e.tipo==='Início'){ if(!inicio||e.data<inicio) inicio=e.data; }
       if(e.tipo==='Parada'){ if(!aberta){ aberta={a:e.data,motivo:e.motivo,quem:e.quem,texto:e.texto}; } status='Pausada'; }
       if(e.tipo==='Retomada'||e.tipo==='Início'||e.tipo==='Concluída'){
@@ -652,8 +697,10 @@ function renderGantt(){
   const ends=rows.map(x=>d(x.termino)||d(x.previsao)||TODAY);
   let hi=new Date(Math.max(TODAY.getTime()+21*DAY,...ends.map(e=>e.getTime())));
   hi=new Date(monday(hi).getTime()+7*DAY);
-  const W=g.clientWidth||800; const lw=W<560?150:240;
-  const weeks=Math.round((hi-lo)/(7*DAY)); const pxw=Math.max(56,Math.floor((W-lw)/weeks));
+  g.classList.remove('fit','cards');
+  if(NARROW()){ g.classList.add('cards'); renderCards(g,rows,lo,hi); return; }
+  const W=g.clientWidth||800; const lw=W<1000?200:240;
+  const weeks=Math.round((hi-lo)/(7*DAY)); const pxw=Math.max(26,Math.floor((W-lw)/weeks));
   const tw=weeks*pxw; g.style.setProperty('--lw',lw+'px'); g.style.setProperty('--tw',tw+'px');
   const X=t=>(t-lo)/(7*DAY)*pxw;
   const head=el('div',{class:'grow ghead'}, el('div',{class:'glabel'},el('span',{class:'s'},'Frente')), (()=>{const tr=el('div',{class:'gtrack'});
@@ -674,7 +721,61 @@ function renderGantt(){
   }
   const tl=lw+X(TODAY)+pxw/14;
   const tline=el('div',{class:'today',style:'left:'+tl+'px'}); g.appendChild(tline); tline.style.bottom='auto'; tline.style.height=g.scrollHeight+'px';
-  if(lw+tw>W) g.scrollLeft=Math.max(0,X(TODAY)-(W-lw)*0.75);
+  if(lw+tw>W) g.scrollLeft=Math.max(0,X(TODAY)-(W-lw)*0.75); else g.classList.add('fit');
+}
+const NARROW=()=>matchMedia('(max-width:760px)').matches;
+const abertos=new Set();
+function obsLista(x){ return x.eventos.filter(e=>str(e.texto).trim()||e.motivo).slice().reverse(); }
+function renderCards(g,rows,lo,hi){
+  let groups;
+  if(state.grupo==='situacao') groups=['parada','andamento','pendente','concluida'].map(k=>[SIT[k].label,rows.filter(x=>x.sit===k)]);
+  else if(state.grupo==='equipe') groups=[...new Set(rows.map(x=>x.equipe||'Equipe a definir'))].sort().map(e=>[e,rows.filter(x=>(x.equipe||'Equipe a definir')===e)]);
+  else groups=[[null,rows]];
+  const order={parada:0,andamento:1,pendente:2,concluida:3};
+  const span=hi-lo, P=t=>Math.max(0,Math.min(100,(t-lo)/span*100));
+  g.appendChild(el('p',{class:'chint'},'Toque numa frente para ver as observações. A barrinha mostra o período de ',fmt(lo),' a ',fmt(hi),'; o traço escuro é hoje.'));
+  for(const [name,list] of groups){
+    if(!list.length) continue;
+    if(name) g.appendChild(el('div',{class:'cgrp'},name+' · '+list.length));
+    list.sort((a,b)=>(order[a.sit]-order[b.sit])||((d(a.inicio)||d(a.entrada)||0)-(d(b.inicio)||d(b.entrada)||0)));
+    for(const x of list) g.appendChild(frenteCard(x,P));
+  }
+}
+function frenteCard(x,P){
+  const c=SIT[x.sit].c;
+  const ini=d(x.inicio), prev=d(x.previsao), fim=d(x.termino), ent=d(x.entrada);
+  const stopTxt = x.paradaAgora ? 'Parada desde '+fmt(d(x.paradaAgora.a))+' · '+(x.paradaAgora.motivo||'motivo a confirmar') : null;
+  const datas=[ent?'Pedido '+fmt(ent):null, ini?(ini>TODAY?'Início previsto '+fmt(ini):'Início '+fmt(ini)):null, fim?'Concluída '+fmt(fim):(prev?'Previsão '+fmt(prev):(x.sit==='concluida'?null:'Sem previsão de término'))].filter(Boolean).join(' · ');
+  // barrinha
+  const bar=el('div',{class:'cbar'});
+  const seg=(a,b,col,cls)=>{ if(!a||!b||b<a) return; const l=P(a), w=Math.max(1.5,P(new Date(b.getTime()+DAY))-l); bar.appendChild(el('span',{class:'cs'+(cls?' '+cls:''),style:'left:'+l+'%;width:'+w+'%;--c:'+col})); };
+  if(ini){ const end=x.sit==='concluida'?(fim||prev||ini):x.sit==='pendente'?(prev&&prev>ini?prev:ini):TODAY;
+    seg(ini,end,x.sit==='pendente'?'var(--plan)':x.sit==='concluida'?'var(--done)':'var(--run)');
+    for(const p of x.pausas){ const pa=d(p.a), pb=p.b?new Date(d(p.b).getTime()-DAY):TODAY; seg(pa,pb,'var(--pause)','pz'); }
+    if(prev&&prev>TODAY&&(x.sit==='andamento'||x.sit==='parada')) seg(new Date(TODAY.getTime()+DAY),prev,'var(--run)','pv');
+  } else if(prev) seg(prev,prev,'var(--plan)','pv');
+  bar.appendChild(el('span',{class:'ctoday',style:'left:'+P(TODAY)+'%'}));
+  const card=el('div',{class:'fcard'+(x.sit==='parada'?' stopped':''),style:'--c:'+c});
+  const topo=el('button',{type:'button',class:'ctop','aria-expanded':String(abertos.has(x.id))},
+    el('span',{class:'ct1'},el('span',{class:'dot'}),el('b',{},x.local),el('span',{class:'cpill'},x.status)),
+    el('span',{class:'csub'},x.otb?otbResumo(x):x.descricao+(x.equipe?' · '+x.equipe:'')),
+    stopTxt?el('span',{class:'cstop'},stopTxt):null,
+    el('span',{class:'cdatas'},datas), bar,
+    el('span',{class:'cmais'},abertos.has(x.id)?'Esconder observações ▲':'Ver observações ▼'));
+  const det=el('div',{class:'cdet'}); det.hidden=!abertos.has(x.id);
+  const fill=()=>{ det.textContent='';
+    if(x.execucao) det.appendChild(el('div',{class:'cbloc'},el('b',{},'O que está sendo executado'),x.execucao));
+    if(x.obs) det.appendChild(el('div',{class:'cbloc obs'},el('b',{},'Observação'),x.obs));
+    for(const p of x.pausas) det.appendChild(el('div',{class:'cbloc pz'},el('b',{},'Parada '+fmt(d(p.a))+(p.b?' a '+fmt(d(p.b)):' até hoje')),(p.motivo||'Motivo a confirmar')+(p.texto?' · '+p.texto:'')));
+    const evs=obsLista(x);
+    if(evs.length){ const l=el('div',{class:'cevs'},el('b',{},'Registros')); evs.forEach(e=>l.appendChild(el('div',{class:'cev',style:'--c:'+(TIPO_COR[e.tipo]||'var(--muted)')},el('span',{class:'cd'},fmt(d(e.data))),el('span',{},el('i',{},e.tipo),' ',[e.motivo,e.texto].filter(Boolean).join(' · '))))); det.appendChild(l); }
+    if(x.otb&&OT.length) det.appendChild(el('div',{class:'cbloc'},el('b',{},'OTB por dia'),...OT.slice(-6).reverse().map(o=>el('div',{},fmt(d(o.data))+': '+o.vias.join(', ')))));
+    if(!det.childNodes.length) det.appendChild(el('div',{class:'cbloc'},'Sem observações registradas.'));
+    det.appendChild(el('button',{type:'button',class:'btn',onclick:()=>showDet(x.id)},'Histórico completo e fotos'));
+  };
+  if(!det.hidden) fill();
+  topo.addEventListener('click',()=>{ const ab=det.hidden; det.hidden=!ab; ab?abertos.add(x.id):abertos.delete(x.id); if(ab) fill(); topo.setAttribute('aria-expanded',String(ab)); topo.querySelector('.cmais').textContent=ab?'Esconder observações ▲':'Ver observações ▼'; });
+  card.append(topo,det); return card;
 }
 function ganttRow(x,X,weeks,pxw,lo){
   const c=SIT[x.sit].c;
@@ -720,7 +821,7 @@ function ganttRow(x,X,weeks,pxw,lo){
   const open=()=>showDet(x.id);
   lab.addEventListener('click',open); tr.addEventListener('click',open);
   lab.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
-  const tipTxt=()=>x.local+' – '+x.descricao+(x.execucao?'\n'+x.execucao:'')+'\n'+x.status+(ent?' · pedido '+fmt(ent):'')+(ini?' · início '+fmt(ini):'')+' · '+(fim?'concluída '+fmt(fim):(prev?'previsão '+fmt(prev):'sem previsão de término'))+(x.pausas.length?'\n'+x.pausas.length+(x.pausas.length>1?' paradas':' parada')+' no histórico':'');
+  const tipTxt=()=>x.local+' – '+x.descricao+(x.execucao?'\n'+x.execucao:'')+'\n'+x.status+(ent?' · pedido '+fmt(ent):'')+(ini?' · início '+fmt(ini):'')+' · '+(fim?'concluída '+fmt(fim):(prev?'previsão '+fmt(prev):'sem previsão de término'))+(x.pausas.length?'\n'+x.pausas.length+(x.pausas.length>1?' paradas':' parada')+' no histórico':'')+(x.obs?'\nObservação: '+x.obs:'')+(()=>{const u=obsLista(x)[0]; return u?'\nÚltimo registro ('+fmt(d(u.data))+'): '+[u.motivo,u.texto].filter(Boolean).join(' · '):'';})();
   tr.addEventListener('mousemove',e=>{const t=e.target.closest('.seg,.otbd');tip(e,t&&t.dataset.tip?x.local+'\n'+t.dataset.tip:tipTxt());});
   tr.addEventListener('mouseleave',hideTip);
   return el('div',{class:'grow'+(x.sit==='parada'?' stopped':'')},lab,tr);
@@ -1242,23 +1343,25 @@ function relatorioUI(){
 
 /* ---------- mapa das frentes ---------- */
 const MAPAS={sede:{img:'mapa/sede.jpg',z:16,x0:24857,y0:36294,w:2048,h:1792,nome:'Sede'},municipio:{img:'mapa/municipio.jpg',z:12,x0:1551,y0:2267,w:1280,h:768,nome:'Município e distritos'}};
-let mapaVista='sede', marcando=null; const mapaZoom={sede:1,municipio:1}, mapaPos={};
+let mapaVista='sede', marcando=null, mapaAberto=false; const mapaZoom={sede:1,municipio:1}, mapaPos={};
 function proj(M,lat,lng){ const n=2**M.z; const x=(lng+180)/360*n; const r=lat*Math.PI/180; const y=(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n; return {fx:((x-M.x0)*256)/M.w, fy:((y-M.y0)*256)/M.h}; }
 function desproj(M,fx,fy){ const n=2**M.z; const x=M.x0+fx*M.w/256, y=M.y0+fy*M.h/256; const lng=x/n*360-180; const lat=Math.atan(Math.sinh(Math.PI*(1-2*y/n)))*180/Math.PI; return {lat,lng}; }
 function renderMapa(){
   const box=$('mapa'); if(!box) return; box.textContent='';
-  const M=MAPAS[mapaVista]; const rows=filtered();
+  const M=MAPAS[mapaVista]; const rows=dem;
   const com=rows.filter(x=>x.geo), sem=rows.filter(x=>!x.geo&&!x.otb);
   const fora=[];
   const head=el('h2',{},'Mapa das frentes ',el('small',{},com.length+' no mapa'+(sem.length?' · '+sem.length+' sem localização':'')));
   const tabs=el('div',{class:'mtabs',role:'group','aria-label':'Escolher mapa'},Object.entries(MAPAS).map(([k,v])=>el('button',{type:'button',class:'btn'+(k===mapaVista?' on':''),'aria-pressed':String(k===mapaVista),onclick:()=>{mapaVista=k;renderMapa();}},v.nome)));
   head.appendChild(tabs); box.appendChild(head);
+  if(NARROW()&&!marcando){ const b=el('button',{type:'button',class:'btn primary mopen','aria-expanded':String(mapaAberto),onclick:()=>{mapaAberto=!mapaAberto;renderMapa(); if(mapaAberto) box.scrollIntoView({behavior:'smooth',block:'start'});}},mapaAberto?'Fechar mapa':'Ver mapa com todas as frentes');
+    box.insertBefore(b,head.nextSibling); if(!mapaAberto){ tabs.hidden=true; return; } }
   if(marcando){ const f=dem.find(y=>y.id===marcando); box.appendChild(el('div',{class:'mpick'},'Toque no mapa no local da frente ',el('b',{},f?f.local:marcando),'. ',el('button',{type:'button',class:'btn',onclick:()=>{marcando=null;renderMapa();}},'Cancelar'))); }
   const wrap=el('div',{class:'mwrap'+(marcando?' picking':'')});
   const stage=el('div',{class:'mstage',style:'aspect-ratio:'+M.w+'/'+M.h},el('img',{src:M.img,alt:'Mapa de '+M.nome,draggable:'false'}));
   const ZMAX=4, z0=mapaZoom[mapaVista]||1;
   const zlbl=el('span',{class:'zv','aria-live':'polite'});
-  function applyZ(z){ stage.style.width=(z*100)+'%'; stage.style.minWidth=(640*z)+'px'; wrap.classList.toggle('zl',z>=2.5); wrap.classList.toggle('zoomed',z>1); zlbl.textContent=Math.round(z*100)+'%'; zin.disabled=z>=ZMAX; zout.disabled=z<=1; }
+  function applyZ(z){ stage.style.width=(z*100)+'%'; stage.style.minWidth=z>1?(Math.max(wrap.clientWidth||360,360)*z)+'px':'0'; wrap.classList.toggle('zl',z>=2.5); wrap.classList.toggle('zoomed',z>1); zlbl.textContent=Math.round(z*100)+'%'; zin.disabled=z>=ZMAX; zout.disabled=z<=1; }
   function setZ(nz,cx,cy){ const z=mapaZoom[mapaVista]||1; nz=Math.max(1,Math.min(ZMAX,nz)); if(Math.abs(nz-z)<0.001) return;
     if(cx==null){ cx=wrap.clientWidth/2; cy=wrap.clientHeight/2; }
     const fx=(wrap.scrollLeft+cx)/stage.offsetWidth, fy=(wrap.scrollTop+cy)/stage.offsetHeight;
@@ -1600,7 +1703,7 @@ $('fEquipe').addEventListener('change',e=>{state.equipe=e.target.value;render();
 $('fParada').addEventListener('change',e=>{state.parada=e.target.value;render();});
 $('fGrupo').addEventListener('change',e=>{state.grupo=e.target.value;try{localStorage.setItem('painel425',JSON.stringify({grupo:state.grupo}));}catch(_){}render();});
 $('limpar').addEventListener('click',()=>{state.sit=null;state.q='';state.equipe='';state.parada='';$('q').value='';$('fEquipe').value='';$('fParada').value='';render();});
-let rt; addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(renderGantt,150);});
+let rt, lastNarrow=NARROW(); addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{renderGantt(); if(NARROW()!==lastNarrow){ lastNarrow=NARROW(); renderMapa(); }},150);});
 
 function qres(){ const r=$('qres'); if(!r) return; const on=state.q||state.equipe||state.parada||state.sit; if(!on){r.textContent='';return;} const t=qTerms(); const np=pen.filter(p=>hit(t,[p.pedido,p.local,p.quem,p.id,p.porque,p.aguardando])).length; r.textContent=filtered().length+' frentes'+(state.q?' · '+np+' pendências':'')+' encontradas'; }
 function render(){derive();fillSelects();renderAlertas();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderFalta();renderCampo();renderMsgs();renderConv();renderLog();refreshDet();qres();
