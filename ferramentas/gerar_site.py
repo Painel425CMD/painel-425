@@ -37,7 +37,7 @@ def main(src, out):
     for k, v in dados['midia'].items():
         a = str(v.get('asset', ''))
         if v.get('publico') is True and a in tem:
-            pub[k] = {**{x: v.get(x) for x in ('alvo', 'evento', 'asset', 'tipo', 'data', 'criadoEm', 'publico')}, 'nome': '', 'src': 'fotos/' + tem[a]}
+            pub[k] = {**{x: v.get(x) for x in ('alvo', 'evento', 'asset', 'tipo', 'data', 'criadoEm', 'publico', 'legenda')}, 'nome': '', 'src': 'fotos/' + tem[a]}
     dados['midia'] = pub
     # agenda: só os itens marcados para o site público
     dados['agenda'] = {k: v for k, v in dados['agenda'].items() if v.get('publico') is not False}
