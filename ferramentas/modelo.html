@@ -2286,7 +2286,7 @@ function renderRelAprov(){
   const ob=el('textarea',{class:'msgout',rows:'3','aria-label':'Observações do dia',placeholder:'Observações do dia (opcional): clima, visita da fiscalização, ocorrências, recados para a Move…'}); ob.value=R&&R.obs||'';
   const dr=relDraft[D]; if(editando&&dr){ ex.value=dr.ex; pr.value=dr.pr; ob.value=dr.ob; }
   const guarda=()=>{ relDraft[D]={ex:ex.value,pr:pr.value,ob:ob.value}; }; [ex,pr,ob].forEach(t=>t.addEventListener('input',guarda));
-  if(!editando){ ex.readOnly=true; pr.readOnly=true; ob.readOnly=true; }
+  if(!editando){ ex.readOnly=true; ob.readOnly=true; }
   const fotos=fotosDoDia(D).filter(m=>m.publico);
   if(!relSelFotos[D]) relSelFotos[D]=new Set(R&&R.fotos&&R.fotos.length?R.fotos:fotos.map(m=>m._id));
   const sel=relSelFotos[D]; fotos.forEach(m=>{ if(m.criadoEm>(R&&R.salvoEm||R&&R.aprovadoEm||0)&&!(R&&R.fotos||[]).includes(m._id)) sel.add(m._id); });
@@ -2335,9 +2335,14 @@ function renderRelAprov(){
       el('div',{class:'rlab'},'Fotos do dia: '+fotos.length+(fotos.length?' (marque as que entram no relatório)':''),fotos.length?lista:null,editando&&can?drop:null,editando&&can?pl:null,editando&&can?el('div',{class:'crow'},bSalvarF,fm):null),
       (()=>{ const da=demandasAceitas(D); return el('div',{class:'rlab'},'Demandas extraordinárias aceitas no dia: '+da.length+(da.length?'':' (só entram as aceitas; descartadas e em avaliação não vão)'),da.length?el('ul',{},da.map(x=>el('li',{},el('b',{},x.id),' · '+(x.tipo?x.tipo+' · ':'')+x.pedido+(x.local?' – '+x.local:'')+' · '+x.destino))):null); })(),
       el('label',{class:'rlab'},'Programação de '+fmt(d(D2))+' (vem da aba Programação, se salva)',pr),
+      can?(()=>{ const pi=el('span',{class:'msg',role:'status'}); const P2s=PROG[D2]; if(P2s&&P2s.salvoEm){ pi.textContent='Programação de '+fmt(d(D2))+' salva em '+fdh(P2s.salvoEm)+'.'; }
+        return el('div',{class:'crow'},el('button',{type:'button',class:'btn primary',onclick:async()=>{ const t=pr.value.trim(); if(!t){ pi.className='msg err'; pi.textContent='A programação está vazia.'; return; }
+          const old=PROG[D2]||{}; const v={data:D2,itens:old.itens||[],texto:t,geradoEm:old.geradoEm||Date.now(),salvoEm:Date.now(),atualizadoEm:Date.now()};
+          try{ await db.collection('programacao').doc(D2).set(v); PROG[D2]={_v:true,itens:v.itens,texto:v.texto,geradoEm:v.geradoEm,salvoEm:v.salvoEm}; pi.className='msg ok'; pi.textContent='Programação de '+fmt(d(D2))+' salva às '+fdh(v.salvoEm).split(' ')[1]+'. Ela aparece na aba Programação e no site.'; renderProgSalvas(); }
+          catch(e){ pi.className='msg err'; pi.textContent='Não foi possível salvar a programação.'; writeErr(e); } }},'Salvar programação de '+fmt(d(D2))),pi); })():null,
       can?el('div',{class:'crow'},
         editando?el('button',{type:'button',class:'btn',onclick:()=>salvar(false)},R&&R.publico?'Salvar como rascunho (tira do site)':'Salvar rascunho'):null,
-        editando?el('button',{type:'button',class:'btn primary',onclick:()=>salvar(true)},R&&R.publico?'Publicar alterações':'Publicar'):null,
+        editando?el('button',{type:'button',class:'btn primary',onclick:()=>salvar(true)},R&&R.publico?'Salvar e publicar alterações':'Salvar e publicar relatório'):null,
         editando&&R&&R.publico?el('button',{type:'button',class:'btn',onclick:()=>{ relEdit[D]=false; relSelFotos[D]=null; delete relDraft[D]; renderRelAprov(); }},'Cancelar edição'):null,
         !editando?el('button',{type:'button',class:'btn primary',onclick:()=>{ relEdit[D]=true; renderRelAprov(); }},'Editar'):null,
         DL?el('button',{type:'button',class:'btn',onclick:async ev=>{ const b=ev.currentTarget; b.disabled=true; const st=t=>{ info.className='msg'; info.textContent=t; };
