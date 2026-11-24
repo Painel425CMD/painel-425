@@ -513,6 +513,7 @@ header.top{display:block}
 .btn.chip{padding:5px 11px;border-radius:20px}
 .btn.chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
 @media print{.top,.band,.relhd,.foot,footer,.tabs{display:none!important}.relv{border:0}}
+.dext form.cin{padding-top:0}
 </style>
 </head>
 <body>
@@ -1643,7 +1644,40 @@ function renderLog(){
 /* ---------- aba Campo (celular do encarregado) ---------- */
 let RC=[], PG=[];
 const DIAS_SEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
-const CAMPO_PESSOAS=['Erick','Antônio','Carlos','Maria','Richard'];
+let DX_MSG='';
+function demandaExtraBox(){
+  const s=el('section',{class:'card cbox dext'});
+  const abrir=el('button',{type:'button',class:'btn big',onclick:()=>{ f.hidden=!f.hidden; abrir.setAttribute('aria-expanded',String(!f.hidden)); if(!f.hidden) oq.focus(); },'aria-expanded':'false'},'＋ Nova demanda extraordinária');
+  const oq=el('textarea',{rows:'2',placeholder:'O que precisa ser feito (ex.: buraco grande na pista, vazamento, árvore caída)'});
+  const onde=el('input',{type:'text',placeholder:'Onde (rua, número, bairro ou referência)'});
+  const quem=el('input',{type:'text',placeholder:'Quem pediu (ex.: Gleidstone/Move, Prefeitura, morador)',list:'dxQuem'});
+  const dlq=el('datalist',{id:'dxQuem'},['Gleidstone (Move)','Patrick (Move)','Wesley (Move)','Ana (Move)','Prefeitura','Morador','Iniciativa da Sinarco'].map(v=>el('option',{value:v})));
+  const urg=el('select',{},['Normal','Urgente (hoje)','Pode esperar'].map(v=>el('option',{},v)));
+  const ob=el('textarea',{rows:'2',placeholder:'Observação (opcional)'});
+  const fin=el('input',{type:'file',accept:'image/*,video/*',multiple:'',hidden:''}); let files=[]; const fl=el('span',{class:'msg'});
+  fin.addEventListener('change',()=>{ files=[...fin.files]; fl.textContent=files.length?files.length+' arquivo(s) anexado(s)':''; });
+  let geo=null; const gm=el('span',{class:'msg'});
+  const bGeo=el('button',{type:'button',class:'btn',onclick:()=>{ if(!navigator.geolocation){gm.textContent='Sem GPS aqui.';return;} gm.textContent='Pegando a localização…'; navigator.geolocation.getCurrentPosition(p=>{geo={lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6)}; gm.className='msg ok'; gm.textContent='Localização anexada.';},()=>{gm.className='msg err';gm.textContent='Não consegui a localização.';},{enableHighAccuracy:true,timeout:15000}); }},'Localização');
+  const m=el('span',{class:'msg',role:'status'});
+  const env=el('button',{type:'submit',class:'btn primary big'},'Registrar demanda');
+  const ok=el('p',{class:'msg ok',style:'padding:0 16px 12px'},DX_MSG); ok.hidden=!DX_MSG;
+  const f=el('form',{class:'cin',hidden:''},
+    el('label',{class:'cq'},'O que é',oq),el('label',{class:'cq'},'Onde',onde),el('label',{class:'cq'},'Quem pediu',quem,dlq),el('label',{class:'cq'},'Urgência',urg),el('label',{class:'cq'},'Observação',ob),
+    el('div',{class:'crow'},el('button',{type:'button',class:'btn',onclick:()=>fin.click()},'Foto ou vídeo'),bGeo,fin),el('div',{},fl,' ',gm),el('div',{class:'crow'},env,m));
+  f.addEventListener('submit',async ev=>{ ev.preventDefault(); if(!oq.value.trim()||!onde.value.trim()){ m.className='msg err'; m.textContent='Preencha o que é e onde.'; return; }
+    env.disabled=true; m.className='msg'; m.textContent='Registrando…';
+    const nums=PD.map(p=>+(p.id.match(/^P-(\d+)$/)||[0,0])[1]); const id='P-'+String(Math.max(0,...nums)+1).padStart(2,'0');
+    const agora=new Date(); const hh=agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const obs=['Demanda extraordinária registrada na aba Campo por '+quemSou()+' em '+fmt(TODAY)+' às '+hh+'.','Urgência: '+urg.value+'.',geo?'Localização: '+geo.lat+', '+geo.lng+'.':''].filter(Boolean).join(' ');
+    try{ await db.collection('pendencias').doc(id).set({pedido:oq.value.trim(),local:onde.value.trim(),quem:quem.value.trim()||quemSou(),deQuem:quem.value.trim()||'',data:iso(TODAY),situacao:'Aberta',aguardando:'',porque:ob.value.trim(),obs,resposta:'',frente:''});
+      if(files.length) await uploadMedia(files,id,'',(t,c)=>{ m.className='msg'+(c?' '+c:''); m.textContent=t; });
+      m.className='msg ok'; m.textContent='Demanda '+id+' registrada. Ela já aparece nas pendências do painel.'; DX_MSG=m.textContent; setTimeout(renderCampo,50); setTimeout(()=>{DX_MSG='';},20000); oq.value=onde.value=quem.value=ob.value=''; files=[]; geo=null; fl.textContent=''; gm.textContent='';
+    }catch(e){ writeErr(e); m.className='msg err'; m.textContent='Não foi possível registrar. Tente de novo ou mande pelo WhatsApp.'; }
+    env.disabled=false; });
+  s.append(el('h2',{},'Demanda extraordinária ',el('small',{},'chegou um pedido fora da programação? registre aqui')),ok,el('div',{style:'padding:0 16px 14px'},abrir),f);
+  return s;
+}
+const CAMPO_PESSOAS=['Erick','Antônio','Carlos','Maria','Richad'];
 function quemSou(){ try{ return localStorage.getItem('painel425_quem')||'Erick'; }catch(_){ return 'Erick'; } }
 function newRid(){return 'R'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
 function renderCampo(){
@@ -1675,12 +1709,15 @@ function renderCampo(){
     bEnv.disabled=false; }},'Enviar recado');
   box.appendChild(el('section',{class:'card cbox'},el('h2',{},'Mandar recado ',el('small',{},'o Claude organiza e lança no painel')),
     el('div',{class:'cin'},el('label',{class:'cq'},'Quem envia',pessoas,quem),tx,el('div',{class:'crow'},bFoto,bGeo,fin),el('div',{},fl,' ',geoMsg),el('div',{class:'crow'},bEnv,msgEl))));
+  // 1b. demanda extraordinária
+  if(can) box.appendChild(demandaExtraBox());
   // 2. perguntas
   const abertas=PG.filter(p=>!p.respondida).sort((a,b)=>a.criadoEm-b.criadoEm);
   if(abertas.length){ const s=el('section',{class:'card cbox perg'},el('h2',{},'Perguntas para você ',el('small',{},abertas.length+(abertas.length===1?' aberta':' abertas'))));
     for(const q of abertas){ const r=el('textarea',{rows:'2',placeholder:'Responda aqui (pode falar pelo microfone)'}); const m=el('span',{class:'msg'});
-      const b=el('button',{type:'button',class:'btn primary',onclick:async()=>{ if(!r.value.trim()) return; b.disabled=true; try{ await db.collection('perguntas').doc(q._id).update({resposta:r.value.trim(),respondida:true,respondidaEm:Date.now(),quemRespondeu:quemSou()}); }catch(e){ writeErr(e); m.className='msg err'; m.textContent='Não salvou.'; b.disabled=false; } }},'Responder');
-      s.appendChild(el('div',{class:'pq'},el('div',{class:'pqt'},q.texto),q.ref?el('div',{class:'pqr'},q.ref):null,r,el('div',{class:'crow'},b,m))); }
+      const ob=el('textarea',{rows:'2',placeholder:'Observação (opcional): algo a mais que a Maria precise saber'});
+      const b=el('button',{type:'button',class:'btn primary',onclick:async()=>{ if(!r.value.trim()) return; b.disabled=true; try{ await db.collection('perguntas').doc(q._id).update({resposta:r.value.trim(),observacao:ob.value.trim(),respondida:true,respondidaEm:Date.now(),quemRespondeu:quemSou()}); }catch(e){ writeErr(e); m.className='msg err'; m.textContent='Não salvou.'; b.disabled=false; } }},'Responder');
+      s.appendChild(el('div',{class:'pq'},el('div',{class:'pqt'},q.texto),q.ref?el('div',{class:'pqr'},q.ref):null,r,ob,el('div',{class:'crow'},b,m))); }
     box.appendChild(s); }
   // 3. pendente
   const pend=penAbertas.filter(p=>!EXT.test(p.aguardando||'')&&p.situacao!=='Respondida').map(p=>({p,dias:p.data?Math.round((TODAY-d(p.data))/DAY):0})).sort((a,b)=>b.dias-a.dias);
@@ -1699,22 +1736,25 @@ function renderCampo(){
   const ul4=el('div',{class:'clist'});
   for(const x of and){ const hoje=x.eventos.filter(e=>e.data===iso(TODAY)&&e.tipo==='Execução');
     const area=el('div',{class:'cact',hidden:''});
-    const abre=(tipo)=>{ area.hidden=false; area.textContent=''; const t=el('textarea',{rows:'2',placeholder:tipo==='Execução'?'O que foi feito hoje (trecho, quantidade, material)':tipo==='Parada'?'Detalhe (opcional)':'Observação (opcional)'});
+    const abre=(tipo)=>{ area.hidden=false; area.textContent=''; const t=el('textarea',{rows:'2',placeholder:tipo==='Execução'?'O que foi feito hoje (trecho, quantidade, material)':tipo==='Parada'?'Detalhe (opcional)':tipo==='Nota'?'Escreva a observação':'Observação (opcional)'});
       const mot=tipo==='Parada'?el('select',{},MOTIVOS.map(m=>el('option',{},m))):null; const m=el('span',{class:'msg'});
-      const ok=el('button',{type:'button',class:'btn primary',onclick:async()=>{ if(tipo==='Execução'&&!t.value.trim()){m.className='msg err';m.textContent='Escreva o que foi feito.';return;} ok.disabled=true;
+      const ok=el('button',{type:'button',class:'btn primary',onclick:async()=>{ if((tipo==='Execução'||tipo==='Nota')&&!t.value.trim()){m.className='msg err';m.textContent=tipo==='Nota'?'Escreva a observação.':'Escreva o que foi feito.';return;} ok.disabled=true;
         const r=await saveEvent({frente:x.id,data:iso(TODAY),tipo,motivo:mot?mot.value:'',quem:quemSou(),texto:t.value.trim(),previsao:''}); if(!r){m.className='msg err';m.textContent='Não salvou.';ok.disabled=false;} }},'Salvar');
       area.append(mot||'',t,el('div',{class:'crow'},ok,m)); t.focus(); };
     ul4.appendChild(el('div',{class:'citem2'},el('div',{class:'ct',onclick:()=>showDet(x.id)},el('b',{},x.local),el('span',{class:'cs'},x.execucao||x.descricao),el('span',{class:'cm'},(x.equipe||'Equipe a definir')+(hoje.length?' · hoje: '+hoje.map(e=>e.texto).join('; '):''))),
-      can?el('div',{class:'crow'},el('button',{type:'button',class:'btn',onclick:()=>abre('Execução')},'Fez hoje'),el('button',{type:'button',class:'btn',onclick:()=>abre('Parada')},'Parou'),el('button',{type:'button',class:'btn',onclick:()=>abre('Concluída')},'Concluiu')):null,area)); }
+      can?el('div',{class:'crow'},el('button',{type:'button',class:'btn',onclick:()=>abre('Execução')},'Fez hoje'),el('button',{type:'button',class:'btn',onclick:()=>abre('Parada')},'Parou'),el('button',{type:'button',class:'btn',onclick:()=>abre('Concluída')},'Concluiu'),el('button',{type:'button',class:'btn',onclick:()=>abre('Nota')},'Observação')):null,area)); }
   if(!and.length) ul4.appendChild(el('div',{class:'empty'},'Nenhuma frente em andamento.'));
   s4.appendChild(ul4); box.appendChild(s4);
   // 5. programado
   const prog=dem.filter(x=>x.sit==='pendente').sort((a,b)=>(d(a.inicio)||new Date(9e15))-(d(b.inicio)||new Date(9e15)));
   const s5=el('section',{class:'card cbox'},el('h2',{},'Programado ',el('small',{},prog.length+' frentes')));
   const ul5=el('div',{class:'clist'});
-  for(const x of prog){ const dt=d(x.inicio); const m=el('span',{class:'msg'});
+  for(const x of prog){ const dt=d(x.inicio); const m=el('span',{class:'msg'}); const oa=el('div',{class:'cact',hidden:''});
+    const abreObs=()=>{ oa.hidden=!oa.hidden; if(oa.hidden) return; oa.textContent=''; const t=el('textarea',{rows:'2',placeholder:'Escreva a observação'}); const mm=el('span',{class:'msg'});
+      const ok=el('button',{type:'button',class:'btn primary',onclick:async()=>{ if(!t.value.trim()){mm.className='msg err';mm.textContent='Escreva a observação.';return;} ok.disabled=true; const r=await saveEvent({frente:x.id,data:iso(TODAY),tipo:'Nota',motivo:'',quem:quemSou(),texto:t.value.trim(),previsao:''}); if(!r){mm.className='msg err';mm.textContent='Não salvou.';ok.disabled=false;} }},'Salvar');
+      oa.append(t,el('div',{class:'crow'},ok,mm)); t.focus(); };
     ul5.appendChild(el('div',{class:'citem2'},el('div',{class:'ct',onclick:()=>showDet(x.id)},el('b',{},(dt?fmt(dt)+' ('+DIAS_SEM[dt.getDay()]+') · ':'Sem data · ')+x.local),el('span',{class:'cs'},x.execucao||x.descricao),el('span',{class:'cm'},x.equipe||'Equipe a definir')),
-      can?el('div',{class:'crow'},el('button',{type:'button',class:'btn',onclick:async e=>{e.target.disabled=true; const r=await saveEvent({frente:x.id,data:iso(TODAY),tipo:'Início',motivo:'',quem:quemSou(),texto:'',previsao:''}); if(!r){m.className='msg err';m.textContent='Não salvou.';e.target.disabled=false;}}},'Começou hoje'),m):null)); }
+      can?el('div',{class:'crow'},el('button',{type:'button',class:'btn',onclick:async e=>{e.target.disabled=true; const r=await saveEvent({frente:x.id,data:iso(TODAY),tipo:'Início',motivo:'',quem:quemSou(),texto:'',previsao:''}); if(!r){m.className='msg err';m.textContent='Não salvou.';e.target.disabled=false;}}},'Começou hoje'),el('button',{type:'button',class:'btn',onclick:abreObs},'Observação'),m):null,oa)); }
   if(!prog.length) ul5.appendChild(el('div',{class:'empty'},'Nada programado.'));
   s5.appendChild(ul5); box.appendChild(s5);
   // 6. recados de hoje
