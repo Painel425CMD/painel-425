@@ -472,6 +472,9 @@ header.top{display:block}
 .mav{display:grid;grid-template-columns:1.4fr 1fr 1fr 1.4fr auto;gap:6px}
 .mav input{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:7px 9px;min-width:0}
 @media (max-width:760px){.mav{grid-template-columns:1fr}.mrow{grid-template-columns:24px 1fr}.mrow .mbt{grid-column:2;justify-content:flex-start}}
+.mbt .mexc{color:var(--risk)}
+.mbt .minc{color:var(--run);font-weight:600}
+.pcard.hsel{background:color-mix(in srgb,var(--plan) 8%,var(--surface))}
 </style>
 </head>
 <body>
@@ -1845,7 +1848,8 @@ function mVirtual(e,D){
   if(e.k==='t'){ return {id:e.id,_avulso:true,_titulo:(e.titulo+(e.local?' – '+e.local:'')).toUpperCase(),_corpo:e.texto||'',equipe:e.resp||'',sit:'pendente',eventos:[],descricao:e.titulo,local:e.local||''}; }
 }
 function mSalvar(){ if(!db||canWrite===false) return; clearTimeout(mSalvaT); const D=mDia, itens=mLista.map(e=>{ const o={k:e.k,id:e.id,on:!!e.on}; if(e.k==='t'){ o.titulo=e.titulo; o.texto=e.texto||''; o.local=e.local||''; o.resp=e.resp||''; } return o; });
-  PROG[D]={_v:true,itens}; mSalvaT=setTimeout(()=>{ db.collection('programacao').doc(D).set({data:D,itens,atualizadoEm:Date.now()}).catch(writeErr); },500); }
+  const old=PROG[D]||{}; PROG[D]={_v:true,itens,texto:old.texto||'',geradoEm:old.geradoEm||0}; mSalvaT=setTimeout(()=>{ const P=PROG[D]; db.collection('programacao').doc(D).set({data:D,itens:P.itens,texto:P.texto||'',geradoEm:P.geradoEm||0,atualizadoEm:Date.now()}).catch(writeErr); },500); }
+function mSalvarTexto(D,texto){ if(!PROG[D]) mSalvar(); PROG[D].texto=texto; PROG[D].geradoEm=Date.now(); mSalvar(); }
 function renderMontar(){
   const box=$('montarbox'); if(!box||window.__PUBLIC__) return;
   if(!mDia) mDia=proxDiaUtil();
@@ -1856,8 +1860,10 @@ function renderMontar(){
   const can=canWrite!==false&&db;
   const dt=el('input',{type:'date',value:mDia,onchange:e=>{ if(e.target.value){ mDia=e.target.value; renderMontar(); } }});
   const out=el('textarea',{class:'msgout',rows:'16','aria-label':'Programação gerada (pode editar antes de copiar)'}); const info=el('div',{class:'msg'});
-  const gerar=()=>{ const sel=mLista.filter(e=>e.on).map(e=>mVirtual(e,mDia)).filter(Boolean); out.value=gerarMsg('prog',mDia,sel).texto; info.className='msg'; info.textContent=sel.length+' itens. Você pode editar o texto antes de copiar.'; };
-  const cp=el('button',{type:'button',class:'btn',onclick:async()=>{ try{ await navigator.clipboard.writeText(out.value); info.className='msg ok'; info.textContent='Copiado. Cole no WhatsApp.'; }catch(_){ out.select(); info.textContent='Texto selecionado. Use copiar.'; } }},'Copiar');
+  const gerar=()=>{ const sel=mLista.filter(e=>e.on).map(e=>mVirtual(e,mDia)).filter(Boolean); out.value=gerarMsg('prog',mDia,sel).texto; if(can) mSalvarTexto(mDia,out.value); info.className='msg'; info.textContent=sel.length+' itens. Texto salvo na programação de '+fmt(d(mDia))+'. Você pode editar antes de copiar.'; };
+  if(PROG[mDia]&&PROG[mDia].texto){ out.value=PROG[mDia].texto; info.textContent='Texto salvo em '+new Date(PROG[mDia].geradoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'. Gere de novo se mudar a lista.'; }
+  out.addEventListener('change',()=>{ if(can&&out.value.trim()) mSalvarTexto(mDia,out.value); });
+  const cp=el('button',{type:'button',class:'btn',onclick:async()=>{ if(can&&out.value.trim()) mSalvarTexto(mDia,out.value); try{ await navigator.clipboard.writeText(out.value); info.className='msg ok'; info.textContent='Copiado. Cole no WhatsApp.'; }catch(_){ out.select(); info.textContent='Texto selecionado. Use copiar.'; } }},'Copiar');
   const head=el('section',{class:'card'},el('h2',{},'Montar programação ',el('small',{},'escolha o que entra e a ordem; fica salvo e a rotina das 17h47 usa esta lista')),
     el('div',{class:'relrow'},el('label',{},'Programação do dia',dt),el('button',{type:'button',class:'btn',onclick:()=>{ delete PROG[mDia]; mLista=candidatos(mDia); mSalvar(); renderMontar(); }},'Voltar ao padrão')));
   box.appendChild(head);
@@ -1875,7 +1881,7 @@ function renderMontar(){
       const mv=dlt=>{ const on=mLista.filter(x=>x.on===e.on); const j=on.indexOf(e)+dlt; if(j<0||j>=on.length) return; const other=on[j]; const a1=mLista.indexOf(e), a2=mLista.indexOf(other); mLista[a1]=other; mLista[a2]=e; mSalvar(); renderMontar(); };
       ul.appendChild(el('div',{class:'mrow'+(e.on?' on':'')},el('label',{class:'mchk'},cb),
         el('div',{class:'mtx'},el('b',{},a),el('span',{},[b,c].filter(Boolean).join(' · '),e.novo&&e.on?el('span',{class:'mnovo'},' novo'):null)),
-        el('div',{class:'mbt'},e.on&&can?[el('button',{type:'button',class:'btn','aria-label':'Subir',onclick:()=>mv(-1)},'↑'),el('button',{type:'button',class:'btn','aria-label':'Descer',onclick:()=>mv(1)},'↓')]:null,
+        el('div',{class:'mbt'},can?el('button',{type:'button',class:'btn '+(e.on?'mexc':'minc'),onclick:()=>{ cb.checked=!e.on; cb.dispatchEvent(new Event('change')); }},e.on?'Excluir da programação':'Incluir na programação'):null,e.on&&can?[el('button',{type:'button',class:'btn','aria-label':'Subir',onclick:()=>mv(-1)},'↑'),el('button',{type:'button',class:'btn','aria-label':'Descer',onclick:()=>mv(1)},'↓')]:null,
           e.k==='t'&&can?[el('button',{type:'button',class:'btn',title:'Criar frente programada para o dia',onclick:async()=>{ const id=await novaFrenteAvulsa(e); if(id){ const k=mLista.indexOf(e); mLista[k]={k:'f',id,on:true}; mSalvar(); renderMontar(); } }},'Virar frente'),delBtn(()=>{ mLista.splice(mLista.indexOf(e),1); mSalvar(); renderMontar(); })]:null,
           e.k!=='t'?el('button',{type:'button',class:'btn',onclick:()=>e.k==='f'?showDet(e.id):e.k==='p'?showPend(e.id):go('agenda')},'Ver'):null))); }); }
   head.appendChild(ul);
@@ -1885,6 +1891,14 @@ function renderMontar(){
       el('b',{},'Incluir tarefa avulsa'),el('div',{class:'mav'},t,l,r,x,dl,el('button',{type:'submit',class:'btn'},'Incluir'))));
   }
   head.appendChild(el('div',{style:'padding:12px 16px 16px;display:grid;gap:8px'},el('div',{class:'crow'},el('button',{type:'button',class:'btn primary',onclick:gerar},'Gerar programação'),cp,info),out));
+  const dias=Object.keys(PROG).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse();
+  const hs=el('section',{class:'card'},el('h2',{},'Programações salvas ',el('small',{},'uma por dia; toque para abrir')));
+  const hl=el('div',{class:'pclist'}); if(!dias.length) hl.appendChild(el('div',{class:'empty'},'Nenhuma programação salva ainda.'));
+  dias.forEach(k=>{ const P=PROG[k]; const n=(P.itens||[]).filter(e=>e&&e.on).length; const dt=d(k);
+    hl.appendChild(el('div',{class:'pcard'+(k===mDia?' hsel':''),tabindex:'0',role:'button',onclick:()=>{ mDia=k; renderMontar(); window.scrollTo({top:0,behavior:'smooth'}); },onkeydown:ev=>{ if(ev.key==='Enter'){ mDia=k; renderMontar(); } }},
+      el('div',{class:'pcd'},el('b',{},fmt(dt)),DSEM[dt.getDay()]),
+      el('div',{class:'pcb'},el('div',{class:'pct'},'Programação de '+fmt(dt)+'/'+dt.getFullYear()),el('div',{class:'pcm'},n+(n===1?' item':' itens')+(P.texto?' · texto gerado '+new Date(P.geradoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):' · texto ainda não gerado'))))); });
+  hs.appendChild(hl); box.appendChild(hs);
 }
 async function novaFrenteAvulsa(e){
   const ids=FR.map(f=>+(f.id.match(/^D-(\d+)$/)||[0,0])[1]); const id='D-'+String(Math.max(0,...ids)+1).padStart(3,'0');
@@ -1964,7 +1978,7 @@ render();
   if(!window.__PUBLIC__){
     db.collection('recados').onSnapshot(s=>{ RC=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),quem:str(v.quem),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0,situacao:str(v.situacao)};}); renderCampo(); },()=>{});
     db.collection('conversas').onSnapshot(s=>{ CV=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),origem:str(v.origem),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0,situacao:str(v.situacao)};}); renderConv(); },()=>{});
-    db.collection('programacao').onSnapshot(s=>{ PROG={}; s.docs.forEach(x=>{ const v=x.data()||{}; PROG[x.id]={_v:true,itens:Array.isArray(v.itens)?v.itens:[]}; }); renderMontar(); },()=>{});
+    db.collection('programacao').onSnapshot(s=>{ PROG={}; s.docs.forEach(x=>{ const v=x.data()||{}; PROG[x.id]={_v:true,itens:Array.isArray(v.itens)?v.itens:[],texto:str(v.texto),geradoEm:typeof v.geradoEm==='number'?v.geradoEm:0}; }); renderMontar(); },()=>{});
     db.collection('perguntas').onSnapshot(s=>{ PG=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),ref:str(v.ref),respondida:v.respondida===true,criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0};}); renderCampo(); },()=>{});
   }
   db.collection('agenda').onSnapshot(s=>{
