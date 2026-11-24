@@ -554,18 +554,33 @@ header.top{display:block}
 .pschips .cm{font-weight:600;margin-right:2px}
 .psres{padding:0 16px 14px}
 .psres .wa{max-width:760px}
+/* topo enxuto no celular: logo e linha corrida */
+.cinfo .sh{display:none}
+@media (max-width:640px){
+.topin{padding:8px 14px;gap:4px}
+.brand img{height:36px}
+.cinfo{gap:0;width:100%;flex-wrap:nowrap;white-space:nowrap;overflow:hidden}
+.cinfo div{display:inline-flex;gap:4px;align-items:baseline}
+.cinfo div+div::before{content:'·';margin:0 6px;color:var(--muted)}
+.cinfo dt{font-size:9px;letter-spacing:.4px}
+.cinfo dd{font-size:12px}
+.cinfo .lg{display:none}.cinfo .sh{display:inline}
+.bandin{padding:14px 14px 10px}.band h1{font-size:21px;margin:8px 0 4px}.kicker{font-size:11.5px}
+}
+@media (max-width:640px){.cinfo div:nth-child(2) dt{display:none}}
+@media (max-width:375px){.cinfo dd{font-size:11.5px}.cinfo dt{font-size:8.5px}.cinfo div+div::before{margin:0 4px}.band .tab{padding:9px 6px;font-size:12.5px}}
 </style>
 </head>
 <body>
 <header class="top">
   <div class="topin">
     <div class="brand"><img src="marca/logo.png" alt="Sinarco Engenharia" width="409" height="240"><span class="slogan">Excelência em Engenharia e Construção</span></div>
-    <dl class="cinfo"><div><dt>Contrato</dt><dd>425</dd></div><div><dt>Cliente</dt><dd>Prefeitura de Conceição do Mato Dentro</dd></div><div><dt>Fiscalização</dt><dd>Move</dd></div></dl>
+    <dl class="cinfo"><div><dt>Contrato</dt><dd>425</dd></div><div><dt>Cliente</dt><dd><span class="lg">Prefeitura de Conceição do Mato Dentro</span><span class="sh">Prefeitura de CMD</span></dd></div><div><dt>Fiscalização</dt><dd>Move</dd></div></dl>
   </div>
 </header>
 <div class="band">
   <div class="bandin">
-    <span class="kicker">Conceição do Mato Dentro · sede e distritos · manutenção urbana e infraestrutura</span>
+    <span class="kicker">Conceição do Mato Dentro · Sede e Distritos · manutenção urbana e infraestrutura</span>
     <h1>Acompanhamento das frentes de serviço</h1>
     <div class="sub"><span id="asof">carregando…</span></div>
   </div>
