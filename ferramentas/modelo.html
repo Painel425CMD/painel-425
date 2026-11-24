@@ -530,6 +530,17 @@ header.top{display:block}
 .titem.late{border-left:4px solid #b42318}
 .ttipo{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;margin:6px 0}
 .ttipo select,.ttipo input{font:inherit;padding:4px 6px}
+/* abas em dois grupos */
+.band .tab{font-size:13.5px;padding:10px 14px}
+.band .tabs{align-items:stretch}
+.tabsep{margin-left:auto;align-self:center;font:600 10.5px var(--display);letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.55);padding:0 8px 0 14px;border-left:1px solid rgba(255,255,255,.25)}
+.tabsep[hidden]{display:none}
+.band .tab.int{color:rgba(190,232,245,.85)}
+.band .tab.int[aria-selected="true"]{color:#fff;border-bottom-color:var(--cyan)}
+.psw{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.psw[hidden]{display:none}
+@media (max-width:640px){.band .tab{padding:10px 9px;font-size:13px}.tabsep{margin-left:6px;padding:0 4px 0 8px}}
+@media (max-width:640px){.band .tabs{flex-wrap:wrap;overflow-x:visible;padding:0 8px}.band .tab{padding:9px 8px;font-size:13px}.tabsep{flex-basis:100%;height:0;padding:0;margin:0;border:0;border-top:1px solid rgba(255,255,255,.18);font-size:0;overflow:hidden}}
 </style>
 </head>
 <body>
@@ -547,13 +558,13 @@ header.top{display:block}
   </div>
   <nav class="tabs" role="tablist">
     <button class="tab" role="tab" id="t-painel" aria-selected="true" aria-controls="painel" type="button">Painel</button>
-    <button class="tab" role="tab" id="t-prog" aria-selected="false" aria-controls="programadas" type="button">Programadas</button>
-    <button class="tab" role="tab" id="t-agenda" aria-selected="false" aria-controls="agenda" type="button">Agenda e avisos</button>
-    <button class="tab" role="tab" id="t-rel" aria-selected="false" aria-controls="relatorios" type="button">Relatórios diários</button>
-    <button class="tab" role="tab" id="t-montar" aria-selected="false" aria-controls="montar" type="button">Montar programação</button>
-    <button class="tab" role="tab" id="t-campo" aria-selected="false" aria-controls="campo" type="button">Campo</button>
-    <button class="tab" role="tab" id="t-lanc" aria-selected="false" aria-controls="lancamentos" type="button">Lançamentos</button>
-    <button class="tab" role="tab" id="t-conv" aria-selected="false" aria-controls="conversas" type="button">Conversas</button>
+    <button class="tab" role="tab" id="t-prog" aria-selected="false" aria-controls="programadas" type="button">Programação</button>
+    <button class="tab" role="tab" id="t-agenda" aria-selected="false" aria-controls="agenda" type="button">Agenda</button>
+    <button class="tab" role="tab" id="t-rel" aria-selected="false" aria-controls="relatorios" type="button">Relatórios</button>
+    <span class="tabsep" id="tabsep" aria-hidden="true">Gestão</span>
+    <button class="tab int" role="tab" id="t-campo" aria-selected="false" aria-controls="campo" type="button">Campo</button>
+    <button class="tab int" role="tab" id="t-lanc" aria-selected="false" aria-controls="lancamentos" type="button">Lançamentos</button>
+    <button class="tab int" role="tab" id="t-conv" aria-selected="false" aria-controls="conversas" type="button">Conversas</button>
   </nav>
 </div>
 <div class="wrap">
@@ -598,6 +609,7 @@ header.top{display:block}
   </div>
 
   <div class="view" id="programadas" role="tabpanel" aria-labelledby="t-prog" hidden>
+    <div class="psw" role="group" aria-label="Programação"><button type="button" class="btn" data-v="programadas">Lista de programadas</button><button type="button" class="btn" data-v="montar">Montar programação do dia</button></div>
     <div class="progwrap" id="proglist"></div>
   </div>
 
@@ -609,7 +621,8 @@ header.top{display:block}
     <div class="progwrap" id="relbox"></div>
   </div>
 
-  <div class="view" id="montar" role="tabpanel" aria-labelledby="t-montar" hidden>
+  <div class="view" id="montar" role="tabpanel" aria-labelledby="t-prog" hidden>
+    <div class="psw" role="group" aria-label="Programação"><button type="button" class="btn" data-v="programadas">Lista de programadas</button><button type="button" class="btn" data-v="montar">Montar programação do dia</button></div>
     <div class="progwrap" id="montarbox"></div>
   </div>
 
@@ -1227,7 +1240,7 @@ function renderProg(){
   const terms=qTerms();
   const prog=dem.filter(x=>x.sit==='pendente'&&x.status==='Programada'&&hit(terms,[x.local,x.descricao,x.execucao,x.equipe])).sort((a,b)=>(d(a.inicio)||d(a.previsao)||new Date(9e15))-(d(b.inicio)||d(b.previsao)||new Date(9e15)));
   const novas=dem.filter(x=>x.sit==='pendente'&&x.status!=='Programada'&&hit(terms,[x.local,x.descricao,x.execucao,x.equipe])).sort((a,b)=>(d(a.entrada)||0)-(d(b.entrada)||0));
-  $('t-prog').textContent='Programadas'+(prog.length?' ('+prog.length+')':'');
+  $('t-prog').textContent='Programação'+(prog.length?' ('+prog.length+')':'');
   const card=x=>{ const dt=d(x.inicio)||d(x.previsao); const can=canWrite!==false&&db&&!window.__PUBLIC__;
     const atras=dt&&dt<TODAY;
     return el('div',{class:'pcard',tabindex:'0',role:'button',onclick:()=>showDet(x.id),onkeydown:e=>{if(e.key==='Enter'){showDet(x.id);}}},
@@ -1898,7 +1911,7 @@ function renderAgenda(){
   const prox=AG.filter(a=>!a.data||a.data>=hj).sort((a,b)=>(a.data||'9')<(b.data||'9')?-1:(a.data||'9')>(b.data||'9')?1:a.criadoEm-b.criadoEm);
   const pass=AG.filter(a=>a.data&&a.data<hj).sort((a,b)=>a.data<b.data?1:-1);
   const perg=pen.filter(p=>!PFECH.includes(p.situacao)&&p.situacao!=='Respondida'&&MOVE_RE.test(p.aguardando)).sort((a,b)=>(a.data||'')<(b.data||'')?-1:1);
-  const tab=$('t-agenda'); if(tab) tab.textContent='Agenda e avisos'+(prox.length?' ('+prox.length+')':'');
+  const tab=$('t-agenda'); if(tab) tab.textContent='Agenda'+(prox.length?' ('+prox.length+')':'');
   // faixa no topo do painel
   const top=$('agtopo'); if(top){ top.textContent=''; const pr=prox.slice(0,3); top.hidden=!pr.length;
     if(pr.length){ top.appendChild(el('b',{class:'agtt'},'Agenda')); pr.forEach(a=>top.appendChild(el('button',{type:'button',class:'agchip',style:'--c:'+(AGCOR[a.tipo]||'var(--muted)'),onclick:()=>go('agenda')},el('span',{class:'agcd'},a.data?(a.data===hj?'Hoje':fmt(d(a.data))):'Sem data'),' ',a.titulo))); if(prox.length>3) top.appendChild(el('button',{type:'button',class:'agmais',onclick:()=>go('agenda')},'+'+(prox.length-3)+' na agenda')); } }
@@ -2216,20 +2229,21 @@ function renderTriagem(){
 }
 
 /* ---------- abas ---------- */
-const VIEWS={painel:'t-painel',programadas:'t-prog',agenda:'t-agenda',relatorios:'t-rel',montar:'t-montar',campo:'t-campo',lancamentos:'t-lanc',conversas:'t-conv'};
+const VIEWS={painel:'t-painel',programadas:'t-prog',agenda:'t-agenda',relatorios:'t-rel',montar:'t-prog',campo:'t-campo',lancamentos:'t-lanc',conversas:'t-conv'};
 let relSel=null;
 function go(name){
   if(name&&name.startsWith('relatorios/')){ relSel=name.split('/')[1]||null; name='relatorios'; } else if(name==='relatorios') relSel=null;
   if(!VIEWS[name]||(window.__PUBLIC__&&(name==='lancamentos'||name==='campo'||name==='conversas'||name==='montar'))) name='painel';
-  for(const [v,t] of Object.entries(VIEWS)){ $(v).hidden=v!==name; $(t).setAttribute('aria-selected',String(v===name)); }
+  for(const v of Object.keys(VIEWS)) $(v).hidden=v!==name; for(const t of new Set(Object.values(VIEWS))) $(t).setAttribute('aria-selected',String(t===VIEWS[name])); document.querySelectorAll('.psw button').forEach(b=>{ b.classList.toggle('primary',b.dataset.v===name); b.setAttribute('aria-pressed',String(b.dataset.v===name)); });
   const h=name==='painel'?'':'#'+name+(name==='relatorios'&&relSel?'/'+relSel:'');
   if(name==='relatorios') renderRelatorios();
   if(location.hash!==h) history.replaceState(null,'',h||location.pathname+location.search);
   if(name==='painel') renderGantt();
 }
-for(const [v,t] of Object.entries(VIEWS)) $(t).addEventListener('click',()=>go(v));
+for(const [v,t] of Object.entries(VIEWS)) if(v!=='montar') $(t).addEventListener('click',()=>go(v));
+document.querySelectorAll('.psw button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.v)));
 addEventListener('hashchange',()=>go(location.hash.slice(1)||'painel'));
-if(window.__PUBLIC__){ $('t-montar').hidden=true; $('t-lanc').hidden=true; $('t-campo').hidden=true; $('t-conv').hidden=true; document.querySelector('.foot').textContent='Toque em uma frente para ver o histórico completo dela. Versão pública só de leitura, atualizada automaticamente.'; }
+if(window.__PUBLIC__){ $('tabsep').hidden=true; document.querySelectorAll('.psw').forEach(x=>x.hidden=true); $('t-lanc').hidden=true; $('t-campo').hidden=true; $('t-conv').hidden=true; document.querySelector('.foot').textContent='Toque em uma frente para ver o histórico completo dela. Versão pública só de leitura, atualizada automaticamente.'; }
 if(location.hash.length>1) go(location.hash.slice(1));
 
 /* ---------- filtros ---------- */
