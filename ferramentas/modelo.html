@@ -1440,7 +1440,7 @@ function renderMapa(){
   const stage=el('div',{class:'mstage',style:'aspect-ratio:'+M.w+'/'+M.h},el('img',{src:M.img,alt:'Mapa de '+M.nome,draggable:'false'}));
   const ZMAX=4, z0=mapaZoom[mapaVista]||1;
   const zlbl=el('span',{class:'zv','aria-live':'polite'});
-  function applyZ(z){ stage.style.width=(z*100)+'%'; stage.style.minWidth=z>1?(Math.max(wrap.clientWidth||360,360)*z)+'px':'0'; wrap.classList.toggle('zl',z>=2.5); wrap.classList.toggle('zoomed',z>1); zlbl.textContent=Math.round(z*100)+'%'; zin.disabled=z>=ZMAX; zout.disabled=z<=1; }
+  function applyZ(z){ if(z>1){ const w=wrap.clientWidth||(box.clientWidth-2); if(w>0){ const bh=Math.min(w*M.h/M.w, innerHeight*0.78); wrap.style.height=Math.round(bh)+'px'; } } else wrap.style.height=''; stage.style.width=(z*100)+'%'; stage.style.minWidth=z>1?(Math.max(wrap.clientWidth||360,360)*z)+'px':'0'; wrap.classList.toggle('zl',z>=2.5); wrap.classList.toggle('zoomed',z>1); zlbl.textContent=Math.round(z*100)+'%'; zin.disabled=z>=ZMAX; zout.disabled=z<=1; }
   function setZ(nz,cx,cy){ const z=mapaZoom[mapaVista]||1; nz=Math.max(1,Math.min(ZMAX,nz)); if(Math.abs(nz-z)<0.001) return;
     if(cx==null){ cx=wrap.clientWidth/2; cy=wrap.clientHeight/2; }
     const fx=(wrap.scrollLeft+cx)/stage.offsetWidth, fy=(wrap.scrollTop+cy)/stage.offsetHeight;
@@ -1475,6 +1475,7 @@ function renderMapa(){
   stage.addEventListener('click',async e=>{ if(!marcando) return; const r=stage.getBoundingClientRect(); const g=desproj(M,(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height); const id=marcando; marcando=null;
     try{ await db.collection('frentes').doc(id).update({geo:{lat:+g.lat.toFixed(6),lng:+g.lng.toFixed(6),aprox:false}}); }catch(err){ writeErr(err); } renderMapa(); });
   wrap.appendChild(stage); box.appendChild(el('div',{class:'mbox'},wrap,zctl));
+  if(z0>1) requestAnimationFrame(()=>applyZ(z0));
   if(z0>1&&mapaPos[mapaVista]){ requestAnimationFrame(()=>{ wrap.scrollLeft=mapaPos[mapaVista][0]; wrap.scrollTop=mapaPos[mapaVista][1]; }); }
   wrap.addEventListener('scroll',()=>{ mapaPos[mapaVista]=[wrap.scrollLeft,wrap.scrollTop]; },{passive:true});
   box.appendChild(el('p',{class:'mhint'},'No computador, gire a roda do mouse sobre o mapa para aproximar ou afastar e arraste para mover. No celular, pince com dois dedos. Os botões + e − também funcionam.'));
