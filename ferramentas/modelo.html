@@ -424,6 +424,17 @@ header.top{display:block}
 .cev i{font-style:normal;font-weight:600;color:var(--c)}
 .cdet .btn{align-self:flex-start}
 @media (max-width:640px){.band .tabs{overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap;max-width:100%}.band .tabs::-webkit-scrollbar{display:none}.band .tab{padding:10px 9px;font-size:13px;flex:none}}
+.caxis{position:sticky;top:0;z-index:5;background:var(--surface);padding:6px 13px 4px 17px;margin:0 -12px 6px;border-bottom:1px solid var(--line);box-shadow:0 4px 6px -6px rgba(0,0,0,.25)}
+.caxin{position:relative;height:28px}
+.cwk{position:absolute;bottom:0;width:1px;height:6px;background:var(--line)}
+.cwl{position:absolute;top:0;transform:translateX(-50%);font-size:10px;color:var(--muted);white-space:nowrap}
+.cwl:first-of-type{transform:none}
+.cax-hoje{position:absolute;bottom:0;transform:translateX(-50%);font-size:10px;font-weight:700;color:#fff;background:var(--ink);border-radius:4px;padding:0 4px;line-height:14px}
+.cbar{height:14px;border-radius:4px}
+.cbar .cgw{position:absolute;top:0;bottom:0;width:1px;background:color-mix(in srgb,var(--ink) 9%,transparent)}
+.cbar .cs{z-index:1}
+.cbar .ctoday{z-index:2}
+.cantes{position:absolute;left:1px;top:0;bottom:0;z-index:3;font-size:9px;line-height:14px;color:#fff}
 </style>
 </head>
 <body>
@@ -698,7 +709,7 @@ function renderGantt(){
   let hi=new Date(Math.max(TODAY.getTime()+21*DAY,...ends.map(e=>e.getTime())));
   hi=new Date(monday(hi).getTime()+7*DAY);
   g.classList.remove('fit','cards');
-  if(NARROW()){ g.classList.add('cards'); renderCards(g,rows,lo,hi); return; }
+  if(NARROW()){ g.classList.add('cards'); const clo=monday(new Date(TODAY.getTime()-56*DAY)); const chi=new Date(monday(new Date(TODAY.getTime()+21*DAY)).getTime()+7*DAY); renderCards(g,rows,clo,chi); return; }
   const W=g.clientWidth||800; const lw=W<1000?200:240;
   const weeks=Math.round((hi-lo)/(7*DAY)); const pxw=Math.max(26,Math.floor((W-lw)/weeks));
   const tw=weeks*pxw; g.style.setProperty('--lw',lw+'px'); g.style.setProperty('--tw',tw+'px');
@@ -733,7 +744,13 @@ function renderCards(g,rows,lo,hi){
   else groups=[[null,rows]];
   const order={parada:0,andamento:1,pendente:2,concluida:3};
   const span=hi-lo, P=t=>Math.max(0,Math.min(100,(t-lo)/span*100));
-  g.appendChild(el('p',{class:'chint'},'Toque numa frente para ver as observações. A barrinha mostra o período de ',fmt(lo),' a ',fmt(hi),'; o traço escuro é hoje.'));
+  g.appendChild(el('p',{class:'chint'},'Toque numa frente para ver as observações. O traço escuro é hoje.'));
+  const ax=el('div',{class:'caxis'}), axin=el('div',{class:'caxin'}); ax.appendChild(axin);
+  const nW=Math.round(span/(7*DAY));
+  for(let i=0;i<nW;i++){ const w=new Date(lo.getTime()+i*7*DAY); axin.appendChild(el('span',{class:'cwk',style:'left:'+P(w)+'%'})); if(i%2===0) axin.appendChild(el('span',{class:'cwl',style:'left:'+P(w)+'%'},fmt(w))); }
+  axin.appendChild(el('span',{class:'cax-hoje',style:'left:'+P(TODAY)+'%'},'hoje'));
+  g.appendChild(ax);
+  window.__cweeks=[...Array(nW).keys()].map(i=>P(new Date(lo.getTime()+i*7*DAY)));
   for(const [name,list] of groups){
     if(!list.length) continue;
     if(name) g.appendChild(el('div',{class:'cgrp'},name+' · '+list.length));
@@ -754,6 +771,8 @@ function frenteCard(x,P){
     for(const p of x.pausas){ const pa=d(p.a), pb=p.b?new Date(d(p.b).getTime()-DAY):TODAY; seg(pa,pb,'var(--pause)','pz'); }
     if(prev&&prev>TODAY&&(x.sit==='andamento'||x.sit==='parada')) seg(new Date(TODAY.getTime()+DAY),prev,'var(--run)','pv');
   } else if(prev) seg(prev,prev,'var(--plan)','pv');
+  (window.__cweeks||[]).forEach(l=>bar.appendChild(el('span',{class:'cgw',style:'left:'+l+'%'})));
+  if(ini&&ini<new Date(TODAY.getTime()-56*DAY)) bar.appendChild(el('span',{class:'cantes',title:'Começou antes'},'◀'));
   bar.appendChild(el('span',{class:'ctoday',style:'left:'+P(TODAY)+'%'}));
   const card=el('div',{class:'fcard'+(x.sit==='parada'?' stopped':''),style:'--c:'+c});
   const topo=el('button',{type:'button',class:'ctop','aria-expanded':String(abertos.has(x.id))},
@@ -1384,8 +1403,10 @@ function renderMapa(){
   wrap.addEventListener('touchstart',e=>{ if(e.touches.length===2){ pinch={d:dist(e.touches),z:mapaZoom[mapaVista]||1}; } },{passive:true});
   wrap.addEventListener('touchmove',e=>{ if(!pinch||e.touches.length!==2) return; e.preventDefault(); const r=wrap.getBoundingClientRect(); const cx=(e.touches[0].clientX+e.touches[1].clientX)/2-r.left, cy=(e.touches[0].clientY+e.touches[1].clientY)/2-r.top; setZ(pinch.z*dist(e.touches)/pinch.d,cx,cy); },{passive:false});
   wrap.addEventListener('touchend',e=>{ if(e.touches.length<2) pinch=null; });
-  for(const x of com){ const p=proj(M,x.geo.lat,x.geo.lng); if(p.fx<0||p.fx>1||p.fy<0||p.fy>1){ fora.push(x); continue; }
-    const pin=el('button',{type:'button',class:'pin'+(x.geo.aprox?' aprox':''),style:'left:'+(p.fx*100)+'%;top:'+(p.fy*100)+'%;--c:'+SIT[x.sit].c,'aria-label':x.local+' · '+SIT[x.sit].label,onclick:e=>{e.stopPropagation(); if(!marcando) showDet(x.id);}},el('span',{class:'pl'},x.local));
+  const zord={concluida:0,pendente:1,andamento:2,parada:3}; const postos=[];
+  for(const x of com.slice().sort((a,b)=>zord[a.sit]-zord[b.sit])){ const p=proj(M,x.geo.lat,x.geo.lng); if(p.fx<0||p.fx>1||p.fy<0||p.fy>1){ fora.push(x); continue; }
+    let k=0; while(postos.some(q=>Math.abs(q.fx-p.fx)<0.012&&Math.abs(q.fy-p.fy)<0.014)&&k<8){ const a=k*2.4; p.fx+=Math.cos(a)*0.014; p.fy+=Math.sin(a)*0.016; k++; } postos.push({fx:p.fx,fy:p.fy});
+    const pin=el('button',{type:'button',class:'pin'+(x.geo.aprox?' aprox':''),style:'left:'+(p.fx*100)+'%;top:'+(p.fy*100)+'%;--c:'+SIT[x.sit].c+';z-index:'+(2+zord[x.sit]),'aria-label':x.local+' · '+SIT[x.sit].label,onclick:e=>{e.stopPropagation(); if(!marcando) showDet(x.id);}},el('span',{class:'pl'},x.local));
     pin.addEventListener('mousemove',e=>tip(e,x.local+'\n'+SIT[x.sit].label+(x.equipe?' · '+x.equipe:'')+(x.geo.aprox?'\nLocal aproximado':''))); pin.addEventListener('mouseleave',hideTip);
     stage.appendChild(pin); }
   stage.addEventListener('click',async e=>{ if(!marcando) return; const r=stage.getBoundingClientRect(); const g=desproj(M,(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height); const id=marcando; marcando=null;
