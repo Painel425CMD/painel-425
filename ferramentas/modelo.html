@@ -2255,7 +2255,7 @@ function renderRelatorios(){
     box.appendChild(c); return; }
   const s=el('section',{class:'card'},el('h2',{},'Relatórios diários ',el('small',{},'executados, fotos e programação de cada dia, aprovados pela Sinarco')));
   const l=el('div',{class:'pclist'}); if(!dias.length) l.appendChild(el('div',{class:'empty'},'Nenhum relatório publicado ainda.'));
-  dias.forEach(k=>{ const R=REL[k], dt=d(k); const nIt=(R.exec.match(/^\*\d+\./gm)||[]).length;
+  dias.forEach(k=>{ const R=REL[k], dt=d(k); const nIt=(R.exec.match(/^\*?\d+\./gm)||[]).length;
     l.appendChild(el('div',{class:'pcard',tabindex:'0',role:'button',onclick:()=>{ relSel=k; go('relatorios/'+k); window.scrollTo({top:0}); },onkeydown:e=>{ if(e.key==='Enter'){ relSel=k; go('relatorios/'+k); } }},
       el('div',{class:'pcd'},el('b',{},fmt(dt)),DSEM[dt.getDay()]),
       el('div',{class:'pcb'},el('div',{class:'pct'},'Relatório de '+fmt(dt)+'/'+dt.getFullYear()),el('div',{class:'pcm'},nIt+(nIt===1?' serviço':' serviços')+' · '+R.fotos.length+(R.fotos.length===1?' foto':' fotos')+(R.aprovadoEm?' · aprovado em '+fdh(R.aprovadoEm):''))))); });
