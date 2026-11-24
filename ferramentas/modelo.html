@@ -541,6 +541,14 @@ header.top{display:block}
 .psw[hidden]{display:none}
 @media (max-width:640px){.band .tab{padding:10px 9px;font-size:13px}.tabsep{margin-left:6px;padding:0 4px 0 8px}}
 @media (max-width:640px){.band .tabs{flex-wrap:wrap;overflow-x:visible;padding:0 8px}.band .tab{padding:9px 8px;font-size:13px}.tabsep{flex-basis:100%;height:0;padding:0;margin:0;border:0;border-top:1px solid rgba(255,255,255,.18);font-size:0;overflow:hidden}}
+.mbusca{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding:4px 16px 10px;background:var(--soft,#f5f6fa);margin:0 16px 10px;border-radius:8px;padding:12px}
+.mbusca label{display:grid;gap:4px;font-size:12.5px;color:var(--muted);font-weight:600}
+.mbusca .mbq{flex:1;min-width:220px}
+.mbusca input{font:inherit;font-size:14px;padding:7px 9px}
+.mbres{padding:0 16px}
+.mbres:empty{display:none}
+.mbhd{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;margin-bottom:6px}
+.mbres pre.msgout{white-space:pre-wrap;max-height:360px;overflow:auto}
 </style>
 </head>
 <body>
@@ -609,7 +617,7 @@ header.top{display:block}
   </div>
 
   <div class="view" id="programadas" role="tabpanel" aria-labelledby="t-prog" hidden>
-    <div class="psw" role="group" aria-label="Programação"><button type="button" class="btn" data-v="programadas">Lista de programadas</button><button type="button" class="btn" data-v="montar">Montar programação do dia</button></div>
+    <div class="psw" role="group" aria-label="Programação"><button type="button" class="btn" data-v="programadas">Lista de programadas</button><button type="button" class="btn" data-v="montar">Programações salvas e montar</button></div>
     <div class="progwrap" id="proglist"></div>
   </div>
 
@@ -622,7 +630,7 @@ header.top{display:block}
   </div>
 
   <div class="view" id="montar" role="tabpanel" aria-labelledby="t-prog" hidden>
-    <div class="psw" role="group" aria-label="Programação"><button type="button" class="btn" data-v="programadas">Lista de programadas</button><button type="button" class="btn" data-v="montar">Montar programação do dia</button></div>
+    <div class="psw" role="group" aria-label="Programação"><button type="button" class="btn" data-v="programadas">Lista de programadas</button><button type="button" class="btn" data-v="montar">Programações salvas e montar</button></div>
     <div class="progwrap" id="montarbox"></div>
   </div>
 
@@ -2028,14 +2036,23 @@ function renderMontar(){
   head.appendChild(el('div',{style:'padding:12px 16px 16px;display:grid;gap:8px'},el('div',{class:'crow'},el('button',{type:'button',class:'btn primary',onclick:gerar},'Gerar programação'),
     can?el('button',{type:'button',class:'btn primary',onclick:async()=>{ if(!out.value.trim()) gerar(); mSalvar(); clearTimeout(mSalvaT); PROG[mDia].texto=out.value; if(!PROG[mDia].geradoEm) PROG[mDia].geradoEm=Date.now(); PROG[mDia].salvoEm=Date.now(); await mGravar(mDia); info.className='msg ok'; info.textContent='Programação de '+fmt(d(mDia))+' salva às '+fdh(PROG[mDia].salvoEm).split(' ')[1]+'. Se já havia uma salva, ela foi substituída.'; renderMontarLista(); }},'Salvar programação do dia'):null,
     cp,info),out));
-  const hs=el('section',{class:'card',id:'mSalvas'}); box.appendChild(hs); renderMontarLista();
+  const hs=el('section',{class:'card',id:'mSalvas'}); box.insertBefore(hs,box.firstChild); renderMontarLista();
 }
+function mIrMontar(){ const b=$('montarbox'); const c=b&&b.children[1]; if(c) c.scrollIntoView({behavior:'smooth',block:'start'}); }
+let mBuscaDia='';
 function renderMontarLista(){
   const hs=$('mSalvas'); if(!hs) return; hs.textContent='';
   const can=canWrite!==false&&db; const hj=iso(TODAY);
   const busca=el('input',{type:'search',placeholder:'Buscar por data (24/11) ou texto (roçada, Jair…)',value:mBusca,'aria-label':'Buscar programações'});
   busca.addEventListener('input',()=>{ mBusca=busca.value; clearTimeout(busca._t); busca._t=setTimeout(()=>{ renderMontarLista(); const b=$('mSalvas').querySelector('input[type=search]'); b&&(b.focus(),b.setSelectionRange(b.value.length,b.value.length)); },250); });
-  hs.append(el('h2',{},'Programações salvas ',el('small',{},'consulte, abra, copie, use como base ou exclua')),el('div',{class:'relrow'},busca));
+  const bd=el('input',{type:'date',value:mBuscaDia,'aria-label':'Dia da programação',onchange:e=>{ mBuscaDia=e.target.value; renderMontarLista(); }});
+  const res=el('div',{class:'mbres'});
+  if(mBuscaDia){ const P=PROG[mBuscaDia], dd=d(mBuscaDia);
+    if(P&&P.texto){ res.append(el('div',{class:'mbhd'},el('b',{},'Programação de '+fmt(dd)+'/'+dd.getFullYear()+' ('+DSEM[dd.getDay()]+')'),el('span',{class:'cm'},P.salvoEm?'última versão salva em '+fdh(P.salvoEm):'rascunho, ainda não salvo')),el('pre',{class:'msgout'},P.texto),
+      el('div',{class:'crow'},el('button',{type:'button',class:'btn',onclick:async ev=>{ try{ await navigator.clipboard.writeText(P.texto); ev.target.textContent='Copiado'; }catch(_){} }},'Copiar'),can?el('button',{type:'button',class:'btn',onclick:()=>{ mDia=mBuscaDia; renderMontar(); mIrMontar(); }},'Abrir e editar'):null)); }
+    else res.append(el('p',{class:'msg'},'Não há programação salva para '+fmt(dd)+'/'+dd.getFullYear()+'.'+(P&&(P.itens||[]).length?' Existe uma lista montada, mas o texto ainda não foi gerado.':''))); }
+  hs.append(el('h2',{},'Programações salvas ',el('small',{},'a mais recente salva de cada dia')),
+    el('div',{class:'mbusca'},el('label',{},'Ver a programação do dia',bd),el('label',{class:'mbq'},'Ou buscar por texto',busca)),res);
   const t=norm(mBusca).trim();
   let dias=Object.keys(PROG).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)&&PROG[k]&&(PROG[k].itens||[]).length);
   if(t) dias=dias.filter(k=>norm(fmt(d(k))+'/'+k.slice(0,4)+' '+k+' '+(PROG[k].texto||'')).includes(t));
@@ -2047,12 +2064,12 @@ function renderMontarLista(){
     const alvo=el('input',{type:'date','aria-label':'Data de destino'});
     const usar=el('span',{class:'musar'},alvo,el('button',{type:'button',class:'btn',onclick:async ev=>{ const D2=alvo.value; if(!D2){ alvo.focus(); return; } if(D2===k) return;
         const bt=ev.currentTarget; if(PROG[D2]&&(PROG[D2].itens||[]).length&&bt.dataset.ok!==D2){ bt.dataset.ok=D2; bt.textContent='Já existe em '+fmt(d(D2))+'. Clique para substituir'; return; }
-        PROG[D2]={_v:true,itens:JSON.parse(JSON.stringify(P.itens||[])),texto:'',geradoEm:0,salvoEm:0}; await mGravar(D2); mDia=D2; renderMontar(); window.scrollTo({top:0,behavior:'smooth'}); }},'Usar como base'));
+        PROG[D2]={_v:true,itens:JSON.parse(JSON.stringify(P.itens||[])),texto:'',geradoEm:0,salvoEm:0}; await mGravar(D2); mDia=D2; renderMontar(); mIrMontar(); }},'Usar como base'));
     return el('div',{class:'mhrow'+(k===mDia?' hsel':'')},
       el('div',{class:'pcd'},el('b',{},fmt(dt)),DSEM[dt.getDay()]),
       el('div',{class:'mhtx'},el('b',{},'Programação de '+fmt(dt)+'/'+dt.getFullYear()),el('span',{},n+(n===1?' item':' itens')+' · '+estado+(P.texto?'':' · sem texto gerado'))),
       el('div',{class:'mbt'},
-        el('button',{type:'button',class:'btn primary',onclick:()=>{ mDia=k; renderMontar(); window.scrollTo({top:0,behavior:'smooth'}); }},'Abrir e editar'),
+        el('button',{type:'button',class:'btn primary',onclick:()=>{ mDia=k; renderMontar(); mIrMontar(); }},'Abrir e editar'),
         el('button',{type:'button',class:'btn',onclick:()=>{ mVerTexto=mVerTexto===k?null:k; renderMontarLista(); }},mVerTexto===k?'Esconder texto':'Ver texto'),
         P.texto?el('button',{type:'button',class:'btn',onclick:async ev=>{ try{ await navigator.clipboard.writeText(P.texto); ev.target.textContent='Copiado'; }catch(_){ mVerTexto=k; renderMontarLista(); } }},'Copiar'):null,
         can?usar:null,
