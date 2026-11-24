@@ -549,6 +549,11 @@ header.top{display:block}
 .mbres:empty{display:none}
 .mbhd{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;margin-bottom:6px}
 .mbres pre.msgout{white-space:pre-wrap;max-height:360px;overflow:auto}
+.progsalvas{margin-bottom:14px}
+.pschips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pschips .cm{font-weight:600;margin-right:2px}
+.psres{padding:0 16px 14px}
+.psres .wa{max-width:760px}
 </style>
 </head>
 <body>
@@ -618,6 +623,7 @@ header.top{display:block}
 
   <div class="view" id="programadas" role="tabpanel" aria-labelledby="t-prog" hidden>
     <div class="psw" role="group" aria-label="Programação"><button type="button" class="btn" data-v="programadas">Lista de programadas</button><button type="button" class="btn" data-v="montar">Programações salvas e montar</button></div>
+    <section class="card progsalvas" id="progsalvas" hidden aria-label="Programação do dia"></section>
     <div class="progwrap" id="proglist"></div>
   </div>
 
@@ -1242,6 +1248,20 @@ function renderAguardando(){
       el('span',{class:'agt'},el('span',{class:'agp'},p.pedido),el('span',{class:'ags'},(p.porque||'')),el('span',{class:'agm'},p.id+' · aguardando '+p.aguardando+' · pedido em '+fmt(d(p.data))+(o.t&&p.data&&iso(o.t)!==p.data?' · última movimentação '+fmt(o.t):''))));
     ul.appendChild(it); }
   box.appendChild(ul);
+}
+let psDia='';
+function renderProgSalvas(){
+  const box=$('progsalvas'); if(!box) return; box.textContent='';
+  const hj=iso(TODAY); const dias=Object.keys(PROG).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)&&PROG[k].salvoEm&&PROG[k].texto).sort();
+  box.hidden=!dias.length; if(!dias.length) return;
+  if(!psDia||!dias.includes(psDia)) psDia=dias.find(k=>k>=hj)||dias[dias.length-1];
+  const P=PROG[psDia], dt=d(psDia);
+  const chip=k=>{ const x=d(k); return el('button',{type:'button',class:'btn chip'+(k===psDia?' on':''),onclick:()=>{ psDia=k; renderProgSalvas(); }},fmt(x)+' '+DSEM[x.getDay()]); };
+  const prox=dias.filter(k=>k>=hj), ant=dias.filter(k=>k<hj).reverse().slice(0,10);
+  const di=el('input',{type:'date',value:psDia,'aria-label':'Escolher o dia',onchange:e=>{ const v=e.target.value; if(!v) return; psDia=v; if(PROG[v]&&PROG[v].salvoEm&&PROG[v].texto) renderProgSalvas(); else { res.textContent=''; res.appendChild(el('p',{class:'msg'},'Não há programação salva para '+fmt(d(v))+'.')); } }});
+  const res=el('div',{class:'psres'},el('div',{class:'mbhd'},el('b',{},'Programação de '+fmt(dt)+'/'+dt.getFullYear()+' ('+DSEM[dt.getDay()]+')'),el('span',{class:'cm'},'última versão salva em '+fdh(P.salvoEm))),waHtml(P.texto));
+  box.append(el('h2',{},'Programação do dia ',el('small',{},'última versão salva pela Sinarco para cada dia')),
+    el('div',{class:'mbusca'},el('label',{},'Ver o dia',di),prox.length?el('div',{class:'pschips'},el('span',{class:'cm'},'Hoje e próximos'),prox.map(chip)):null,ant.length?el('div',{class:'pschips'},el('span',{class:'cm'},'Anteriores'),ant.map(chip)):null),res);
 }
 function renderProg(){
   const box=$('proglist'); if(!box) return; box.textContent='';
@@ -1990,7 +2010,7 @@ function mVirtual0(e,D){
 function mSalvar(){ if(!db||canWrite===false) return; clearTimeout(mSalvaT); const D=mDia, itens=mLista.map(e=>{ const o={k:e.k,id:e.id,on:!!e.on}; if(e.ov&&e.k!=='t') o.ov=e.ov; if(e.k==='t'){ o.titulo=e.titulo; o.texto=e.texto||''; o.local=e.local||''; o.resp=e.resp||''; } return o; });
   const old=PROG[D]||{}; PROG[D]={_v:true,itens,texto:old.texto||'',geradoEm:old.geradoEm||0,salvoEm:old.salvoEm||0}; mSalvaT=setTimeout(()=>mGravar(D),500); }
 function mGravar(D){ const P=PROG[D]; if(!P) return Promise.resolve(); return db.collection('programacao').doc(D).set({data:D,itens:P.itens,texto:P.texto||'',geradoEm:P.geradoEm||0,salvoEm:P.salvoEm||0,atualizadoEm:Date.now()}).catch(writeErr); }
-const fdh=t=>new Date(t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+const fdh=t=>new Date(t).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
 let mBusca='', mVerTexto=null;
 function mSalvarTexto(D,texto){ if(!PROG[D]) mSalvar(); PROG[D].texto=texto; PROG[D].geradoEm=Date.now(); mSalvar(); }
 function renderMontar(){
@@ -2273,7 +2293,7 @@ $('limpar').addEventListener('click',()=>{state.sit=null;state.q='';state.equipe
 let rt, lastNarrow=NARROW(); addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{renderGantt(); if(NARROW()!==lastNarrow){ lastNarrow=NARROW(); renderMapa(); }},150);});
 
 function qres(){ const r=$('qres'); if(!r) return; const on=state.q||state.equipe||state.parada||state.sit; if(!on){r.textContent='';return;} const t=qTerms(); const np=pen.filter(p=>hit(t,[p.pedido,p.local,p.quem,p.id,p.porque,p.aguardando])).length; r.textContent=filtered().length+' frentes'+(state.q?' · '+np+' pendências':'')+' encontradas'; }
-function render(){derive();fillSelects();renderTriagem();renderAlertas();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderAgenda();renderMontar();renderRelatorios();renderRelAprov();renderFalta();renderCampo();renderMsgs();renderConv();renderLog();refreshDet();qres();
+function render(){derive();fillSelects();renderTriagem();renderAlertas();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderProgSalvas();renderAgenda();renderMontar();renderRelatorios();renderRelAprov();renderFalta();renderCampo();renderMsgs();renderConv();renderLog();refreshDet();qres();
   $('asof').textContent=(loaded.frentes&&loaded.eventos)?(window.__PUBLIC__?'Atualizado em '+window.__PUBLIC__:'Atualizado ao vivo · '+fmt(TODAY)+'/'+TODAY.getFullYear()):'carregando…';}
 
 function banner(t){const b=$('banner'); if(!t){b.hidden=true;return;} b.textContent=t; b.hidden=false;}
@@ -2319,10 +2339,10 @@ render();
     MD=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,alvo:str(v.alvo),evento:str(v.evento),asset:str(v.asset),tipo:v.tipo==='video'?'video':'foto',nome:str(v.nome),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0,publico:v.publico===true,src:window.__PUBLIC__&&/^fotos\/[A-Za-z0-9_.-]+$/.test(str(v.src))?str(v.src):''};}).filter(m=>m.alvo&&/^[A-Za-z0-9_-]{8,64}$/.test(m.asset)&&(!window.__PUBLIC__||(m.publico&&m.src)));
     render();
   },()=>{});
+  db.collection('programacao').onSnapshot(s=>{ PROG={}; s.docs.forEach(x=>{ const v=x.data()||{}; PROG[x.id]={_v:true,itens:Array.isArray(v.itens)?v.itens:[],texto:str(v.texto),geradoEm:typeof v.geradoEm==='number'?v.geradoEm:0,salvoEm:typeof v.salvoEm==='number'?v.salvoEm:0}; }); renderMontar(); renderProgSalvas(); },()=>{});
   if(!window.__PUBLIC__){
     db.collection('recados').onSnapshot(s=>{ RC=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),quem:str(v.quem),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0,situacao:str(v.situacao)};}); renderCampo(); },()=>{});
     db.collection('conversas').onSnapshot(s=>{ CV=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),origem:str(v.origem),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0,situacao:str(v.situacao)};}); renderConv(); },()=>{});
-    db.collection('programacao').onSnapshot(s=>{ PROG={}; s.docs.forEach(x=>{ const v=x.data()||{}; PROG[x.id]={_v:true,itens:Array.isArray(v.itens)?v.itens:[],texto:str(v.texto),geradoEm:typeof v.geradoEm==='number'?v.geradoEm:0,salvoEm:typeof v.salvoEm==='number'?v.salvoEm:0}; }); renderMontar(); },()=>{});
     db.collection('perguntas').onSnapshot(s=>{ PG=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),ref:str(v.ref),respondida:v.respondida===true,criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0};}); renderCampo(); },()=>{});
   }
   db.collection('relatorios').onSnapshot(s=>{

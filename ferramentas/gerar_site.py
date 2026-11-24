@@ -28,7 +28,7 @@ def limpa(v):
 
 def main(src, out):
     dados = limpa(json.load(open(src, encoding='utf-8')))
-    for c in ('frentes', 'eventos', 'pendencias', 'pendhist', 'otb', 'midia', 'agenda', 'relatorios'):
+    for c in ('frentes', 'eventos', 'pendencias', 'pendhist', 'otb', 'midia', 'agenda', 'relatorios', 'programacao'):
         dados.setdefault(c, {})
     # fotos e vídeos: só as permitidas e já copiadas para a pasta fotos/ do site
     pasta = os.path.join(os.path.dirname(os.path.abspath(out)), 'fotos')
@@ -45,6 +45,8 @@ def main(src, out):
     fora = {k for k, v in dados['pendencias'].items() if v.get('situacao') in ('Em avaliação', 'Descartada')}
     dados['pendencias'] = {k: v for k, v in dados['pendencias'].items() if k not in fora}
     dados['pendhist'] = {k: v for k, v in dados['pendhist'].items() if v.get('pendencia') not in fora}
+    # programação: só o texto da última versão salva de cada dia (a montagem não vai)
+    dados['programacao'] = {k: {'texto': v.get('texto', ''), 'salvoEm': v.get('salvoEm')} for k, v in dados['programacao'].items() if v.get('salvoEm') and v.get('texto')}
     # relatórios diários: só os aprovados e publicados
     dados['relatorios'] = {k: v for k, v in dados['relatorios'].items() if v.get('publico') is True}
     # notas internas das pendências não vão para o site aberto
