@@ -481,6 +481,7 @@ header.top{display:block}
 .medit .mchk2{display:flex;flex-direction:row;align-items:center;gap:6px}
 .medit .mbt{justify-content:flex-start}
 @media (max-width:760px){.medit{padding-left:12px}}
+.dsm h4{margin:0;font-size:13px}
 </style>
 </head>
 <body>
@@ -982,7 +983,9 @@ function showDet(id){
     if(x.sit==='pendente') act.appendChild(el('button',{class:'btn',type:'button',onclick:()=>{q.hidden=false; const s=q.querySelector('select'); s.value='Início'; s.dispatchEvent(new Event('change')); q.querySelector('input[type=date]').focus();}},'Marcar início da execução'));
     act.appendChild(el('button',{class:'btn',type:'button',onclick:()=>editFrente(x)},'Editar dados da frente'));
     if(!x.otb) act.appendChild(el('button',{class:'btn',type:'button',onclick:()=>marcarNoMapa(x.id)},x.geo?(x.geo.aprox?'Acertar local no mapa':'Mudar local no mapa'):'Marcar no mapa'));
-    dextra.appendChild(act); dextra.appendChild(q);
+    const dsm=desmembrarForm(x); dsm.hidden=true;
+    if(!x.otb&&x.sit!=='concluida') act.appendChild(el('button',{class:'btn',type:'button',title:'Separar um serviço desta frente em outra frente, com equipe e data próprias',onclick:()=>{ dsm.hidden=!dsm.hidden; if(!dsm.hidden) dsm.querySelector('input').focus(); }},'Desmembrar frente'));
+    dextra.appendChild(act); dextra.appendChild(q); dextra.appendChild(dsm);
   }
   openDlg();
 }
@@ -1928,8 +1931,33 @@ function mEditForm(e){
     mSalvar(); f.remove(); renderMontar(); });
   return f;
 }
+function proxIdFrente(){ const ids=FR.map(f=>+(f.id.match(/^D-(\d+)$/)||[0,0])[1]); return 'D-'+String(Math.max(0,...ids)+1).padStart(3,'0'); }
+function desmembrarForm(x){
+  const sv=el('input',{type:'text',maxlength:'140',placeholder:'ex.: Execução de cerca'});
+  const eq=el('input',{type:'text',maxlength:'80',list:'dsmEq',placeholder:'ex.: Jair'});
+  const dl=el('datalist',{id:'dsmEq'},[...new Set(FR.map(f=>f.equipe).filter(Boolean))].sort().map(q=>el('option',{value:q})));
+  const dt=el('input',{type:'date'});
+  const fica=el('input',{type:'text',maxlength:'140'}); fica.value=x.descricao;
+  const m=el('p',{class:'msg'});
+  const f=el('form',{class:'quick dsm'},
+    el('h4',{class:'full'},'Desmembrar: separar um serviço desta frente'),
+    el('label',{class:'full'},'Serviço que vai para a nova frente',sv),
+    el('label',{},'Equipe da nova frente',eq,dl),
+    el('label',{},'Início da nova frente (deixe vazio se ainda não tem data)',dt),
+    el('label',{class:'full'},'Serviço que fica nesta frente ('+x.id+')',fica),
+    el('div',{class:'full dact'},el('button',{type:'submit',class:'btn primary'},'Criar nova frente'),el('button',{type:'button',class:'btn',onclick:()=>{f.hidden=true;}},'Cancelar')),m);
+  f.addEventListener('submit',async ev=>{ ev.preventDefault(); if(!sv.value.trim()){ m.className='msg err'; m.textContent='Escreva o serviço que vai sair.'; return; }
+    const id=proxIdFrente(); const orig=FR.find(z=>z.id===x.id)||{};
+    const nova={canal:orig.canal||'',descricao:sv.value.trim(),entrada:orig.entrada||iso(TODAY),equipe:eq.value.trim(),execucao:'',inicio:dt.value||null,local:orig.local||x.local,obs:'Desmembrada da '+x.id+' ('+x.descricao+').',orgao:orig.orgao||'A confirmar',previsao:null,prioridade:orig.prioridade||'',recursos:'',solicitante:orig.solicitante||'',status:'Programada',termino:null};
+    if(orig.geo) nova.geo=orig.geo;
+    const upd={obs:[orig.obs,'"'+sv.value.trim()+'" separado na '+id+(eq.value.trim()?' (equipe '+eq.value.trim()+')':'')+'.'].filter(Boolean).join(' ')};
+    if(fica.value.trim()&&fica.value.trim()!==x.descricao) upd.descricao=fica.value.trim();
+    try{ await db.collection('frentes').doc(id).set(nova); await db.collection('frentes').doc(x.id).update(upd); m.className='msg ok'; m.textContent='Criada a '+id+'.'; setTimeout(()=>showDet(id),400); }
+    catch(err){ m.className='msg err'; m.textContent='Não foi possível salvar.'; writeErr(err); } });
+  return f;
+}
 async function novaFrenteAvulsa(e){
-  const ids=FR.map(f=>+(f.id.match(/^D-(\d+)$/)||[0,0])[1]); const id='D-'+String(Math.max(0,...ids)+1).padStart(3,'0');
+  const id=proxIdFrente();
   try{ await db.collection('frentes').doc(id).set({canal:'Programação',descricao:e.titulo,entrada:iso(TODAY),equipe:e.resp||'',execucao:e.texto||'',inicio:mDia,local:e.local||e.titulo,obs:'Criada pela aba Montar programação.',orgao:'A confirmar',previsao:null,prioridade:'',recursos:'',solicitante:'',status:'Programada',termino:null}); return id; }catch(err){ writeErr(err); return null; }
 }
 
