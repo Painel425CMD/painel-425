@@ -41,6 +41,10 @@ def main(src, out):
     dados['midia'] = pub
     # agenda: só os itens marcados para o site público
     dados['agenda'] = {k: v for k, v in dados['agenda'].items() if v.get('publico') is not False}
+    # demandas ainda em avaliação ou descartadas não vão para o site
+    fora = {k for k, v in dados['pendencias'].items() if v.get('situacao') in ('Em avaliação', 'Descartada')}
+    dados['pendencias'] = {k: v for k, v in dados['pendencias'].items() if k not in fora}
+    dados['pendhist'] = {k: v for k, v in dados['pendhist'].items() if v.get('pendencia') not in fora}
     # relatórios diários: só os aprovados e publicados
     dados['relatorios'] = {k: v for k, v in dados['relatorios'].items() if v.get('publico') is True}
     # notas internas das pendências não vão para o site aberto

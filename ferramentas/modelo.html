@@ -514,6 +514,17 @@ header.top{display:block}
 .btn.chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
 @media print{.top,.band,.relhd,.foot,footer,.tabs{display:none!important}.relv{border:0}}
 .dext form.cin{padding-top:0}
+.triagem{border-left:4px solid var(--accent);margin-bottom:12px}
+.triagem[hidden]{display:none}
+.titem{padding:10px 16px;border-top:1px solid var(--line);display:grid;gap:5px}
+.titem.urg{background:color-mix(in srgb,var(--risk) 6%,var(--surface))}
+.ttop{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:14px}
+.titem .why{font-size:13px}
+.tbt{flex-wrap:wrap}
+.tact .tgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin:6px 0}
+.tact label{display:grid;gap:3px;font-size:12px;color:var(--muted)}
+.tact input,.tact select{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:6px 8px;width:100%}
+.mexc{color:var(--risk)}
 </style>
 </head>
 <body>
@@ -543,6 +554,7 @@ header.top{display:block}
 <div class="wrap">
   <div class="banner" id="banner" hidden></div>
   <div class="view" id="painel" role="tabpanel" aria-labelledby="t-painel">
+    <section class="card triagem" id="triagem" hidden aria-label="Demandas para avaliar"></section>
     <section class="card alertas" id="alertas" hidden aria-label="Pontos de atenção"></section>
     <section class="agtopo" id="agtopo" hidden aria-label="Próximos na agenda"></section>
     <section class="tiles" id="tiles" aria-label="Resumo por situação"></section>
@@ -943,9 +955,9 @@ function ganttRow(x,X,weeks,pxw,lo){
 }
 
 /* ---------- pendências ---------- */
-const PSITS=['Aberta','Aguardando informação','Programada','Respondida','Virou frente','Fechada'];
-const PFECH=['Fechada','Virou frente','Virou demanda'];
-const PSIT={Aberta:['var(--risk)','color-mix(in srgb,var(--risk) 14%,var(--surface))'],'Aguardando informação':['var(--pend)','var(--pendbg)'],Programada:['var(--plan)','color-mix(in srgb,var(--plan) 14%,var(--surface))'],Respondida:['var(--pause)','var(--pausebg)'],'Virou frente':['var(--run)','var(--runbg)'],'Virou demanda':['var(--run)','var(--runbg)'],Fechada:['var(--done)','var(--donebg)']};
+const PSITS=['Em avaliação','Aberta','Aguardando informação','Programada','Respondida','Virou frente','Virou ocorrência','Virou agenda','Descartada','Fechada'];
+const PFECH=['Fechada','Virou frente','Virou demanda','Virou ocorrência','Virou agenda','Descartada'];
+const PSIT={'Em avaliação':['var(--accent)','color-mix(in srgb,var(--accent) 12%,var(--surface))'],'Virou ocorrência':['var(--run)','var(--runbg)'],'Virou agenda':['var(--plan)','color-mix(in srgb,var(--plan) 14%,var(--surface))'],Descartada:['var(--muted)','var(--donebg)'],Aberta:['var(--risk)','color-mix(in srgb,var(--risk) 14%,var(--surface))'],'Aguardando informação':['var(--pend)','var(--pendbg)'],Programada:['var(--plan)','color-mix(in srgb,var(--plan) 14%,var(--surface))'],Respondida:['var(--pause)','var(--pausebg)'],'Virou frente':['var(--run)','var(--runbg)'],'Virou demanda':['var(--run)','var(--runbg)'],Fechada:['var(--done)','var(--donebg)']};
 let fAg='';
 $('fAg').addEventListener('change',e=>{fAg=e.target.value;renderPend();});
 function renderPend(){
@@ -1669,12 +1681,14 @@ function demandaExtraBox(){
     const nums=PD.map(p=>+(p.id.match(/^P-(\d+)$/)||[0,0])[1]); const id='P-'+String(Math.max(0,...nums)+1).padStart(2,'0');
     const agora=new Date(); const hh=agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     const obs=['Demanda extraordinária registrada na aba Campo por '+quemSou()+' em '+fmt(TODAY)+' às '+hh+'.','Urgência: '+urg.value+'.',geo?'Localização: '+geo.lat+', '+geo.lng+'.':''].filter(Boolean).join(' ');
-    try{ await db.collection('pendencias').doc(id).set({pedido:oq.value.trim(),local:onde.value.trim(),quem:quem.value.trim()||quemSou(),deQuem:quem.value.trim()||'',data:iso(TODAY),situacao:'Aberta',aguardando:'',porque:ob.value.trim(),obs,resposta:'',frente:''});
+    try{ await db.collection('pendencias').doc(id).set({pedido:oq.value.trim(),local:onde.value.trim(),quem:quem.value.trim()||quemSou(),deQuem:quem.value.trim()||'',data:iso(TODAY),situacao:'Em avaliação',aguardando:'Avaliação da Maria',porque:ob.value.trim(),obs,resposta:'',frente:'',origem:'campo',registradoPor:quemSou(),urgencia:urg.value,geo:geo||null,criadoEm:Date.now()});
       if(files.length) await uploadMedia(files,id,'',(t,c)=>{ m.className='msg'+(c?' '+c:''); m.textContent=t; });
-      m.className='msg ok'; m.textContent='Demanda '+id+' registrada. Ela já aparece nas pendências do painel.'; DX_MSG=m.textContent; setTimeout(renderCampo,50); setTimeout(()=>{DX_MSG='';},20000); oq.value=onde.value=quem.value=ob.value=''; files=[]; geo=null; fl.textContent=''; gm.textContent='';
+      m.className='msg ok'; m.textContent='Demanda '+id+' registrada. A Maria vai avaliar e decidir se vira frente, ocorrência, agenda ou pendência.'; DX_MSG=m.textContent; setTimeout(renderCampo,50); setTimeout(()=>{DX_MSG='';},20000); oq.value=onde.value=quem.value=ob.value=''; files=[]; geo=null; fl.textContent=''; gm.textContent='';
     }catch(e){ writeErr(e); m.className='msg err'; m.textContent='Não foi possível registrar. Tente de novo ou mande pelo WhatsApp.'; }
     env.disabled=false; });
-  s.append(el('h2',{},'Demanda extraordinária ',el('small',{},'chegou um pedido fora da programação? registre aqui')),ok,el('div',{style:'padding:0 16px 14px'},abrir),f);
+  const rec=pen.filter(p=>p.origem==='campo'&&p.data&&(TODAY-d(p.data))/DAY<=7).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  const lst=rec.length?el('div',{class:'clist',style:'padding:0 16px 12px'},el('b',{class:'cm'},'Demandas dos últimos 7 dias'),rec.map(p=>el('button',{type:'button',class:'citem',onclick:()=>showPend(p.id)},el('span',{class:'ct'},el('b',{},p.id+' · '+p.pedido),el('span',{class:'cm'},(p.local||'')+' · '+(p.situacao==='Em avaliação'?'aguardando avaliação':p.situacao)+(p.avaliacao?' · '+p.avaliacao:'')))))):null;
+  s.append(el('h2',{},'Demanda extraordinária ',el('small',{},'chegou um pedido fora da programação? registre aqui')),ok,el('div',{style:'padding:0 16px 14px'},abrir),f,lst);
   return s;
 }
 const CAMPO_PESSOAS=['Erick','Antônio','Carlos','Maria','Richad'];
@@ -2140,6 +2154,50 @@ function renderRelAprov(){
       el('div',{style:'height:8px'})));
 }
 
+/* ---------- triagem das demandas extraordinárias ---------- */
+async function copiarMidia(de,para,evento){ const ms=MD.filter(m=>m.alvo===de); for(const m of ms){ try{ await db.collection('midia').doc(newMid()).set({alvo:para,evento:evento||'',asset:m.asset,tipo:m.tipo,nome:m.nome,data:m.data||iso(TODAY),criadoEm:Date.now(),publico:true}); }catch(e){ writeErr(e); } } }
+function renderTriagem(){
+  const box=$('triagem'); if(!box||window.__PUBLIC__) return;
+  const ae=document.activeElement; if(ae&&box.contains(ae)&&/^(TEXTAREA|INPUT|SELECT)$/.test(ae.tagName)) return;
+  const lista=pen.filter(p=>p.situacao==='Em avaliação').sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  box.hidden=!lista.length; box.textContent=''; if(!lista.length) return;
+  const can=canWrite!==false&&db;
+  box.appendChild(el('h2',{},'Demandas para avaliar ',el('small',{},lista.length+(lista.length===1?' demanda vinda do campo':' demandas vindas do campo')+' · escolha o destino de cada uma')));
+  for(const p of lista){ const area=el('div',{class:'tact'}); const ms=MD.filter(m=>m.alvo===p.id);
+    const msg=el('span',{class:'msg'});
+    const fecha=async(upd)=>{ await db.collection('pendencias').doc(p.id).update(upd); };
+    const hist=async(t)=>{ try{ await db.collection('pendhist').doc(newHid(p.id)).set({pendencia:p.id,data:iso(TODAY),quem:'Maria (Sinarco)',texto:t,interna:false,criadoEm:Date.now()}); }catch(e){ writeErr(e); } };
+    const forms={
+      frente:()=>{ const sv=el('input',{type:'text',value:p.pedido}); const lc=el('input',{type:'text',value:p.local}); const eq=el('input',{type:'text',list:'dsmEqT',placeholder:'Equipe'}); const dl=el('datalist',{id:'dsmEqT'},[...new Set(FR.map(f=>f.equipe).filter(Boolean))].sort().map(q=>el('option',{value:q}))); const dt=el('input',{type:'date',value:iso(TODAY)});
+        return [el('label',{},'Serviço',sv),el('label',{},'Local',lc),el('label',{},'Equipe',eq,dl),el('label',{},'Início (hoje = já começa em execução)',dt),async()=>{ const id=proxIdFrente();
+          const fr={canal:'Aba Campo',descricao:sv.value.trim()||p.pedido,entrada:p.data||iso(TODAY),equipe:eq.value.trim(),execucao:'',inicio:dt.value||null,local:lc.value.trim()||p.local,obs:'Veio da demanda '+p.id+' (registrada no campo por '+(p.quem||'')+'). '+(p.porque||''),orgao:MOVE_RE.test(p.deQuem)?'Move (fiscalização)':'A confirmar',previsao:null,prioridade:/Urgente/.test(p.urgencia)?'1 - Urgente':'',recursos:'',solicitante:p.deQuem||p.quem,status:'Programada',termino:null};
+          if(p.geo) fr.geo={...p.geo,aprox:false};
+          await db.collection('frentes').doc(id).set(fr);
+          let evId=''; if(dt.value&&dt.value<=iso(TODAY)) evId=await saveEvent({frente:id,data:dt.value,tipo:'Início',motivo:'',quem:'Maria (Sinarco)',texto:'',previsao:''})||'';
+          await copiarMidia(p.id,id,evId);
+          await fecha({situacao:'Virou frente',frente:id,aguardando:'',avaliacao:'virou a frente '+id}); await hist('Avaliada: virou a frente '+id+(dt.value?' com início em '+fmt(d(dt.value)):'')+'.'); return 'Criada a frente '+id+'.'; }]; },
+      ocorr:()=>{ const fs=el('select',{},dem.filter(x=>x.sit!=='concluida').sort((a,b)=>a.local.localeCompare(b.local)).map(x=>el('option',{value:x.id},x.local+' · '+corta(x.descricao,40)))); const tp=el('select',{},['Nota','Execução','Parada'].map(t=>el('option',{value:t},TIPO_LABEL[t]))); const tx=el('input',{type:'text',value:p.pedido+(p.local?' – '+p.local:'')});
+        return [el('label',{},'Frente',fs),el('label',{},'Tipo',tp),el('label',{},'Texto',tx),async()=>{ const evId=await saveEvent({frente:fs.value,data:iso(TODAY),tipo:tp.value,motivo:tp.value==='Parada'?'Outro':'',quem:p.quem||'Campo',texto:tx.value.trim(),previsao:''}); await copiarMidia(p.id,fs.value,evId||'');
+          await fecha({situacao:'Virou ocorrência',frente:fs.value,aguardando:'',avaliacao:'registrada na frente '+fs.value}); await hist('Avaliada: registrada como ocorrência na frente '+fs.value+'.'); return 'Registrada na frente '+fs.value+'.'; }]; },
+      agenda:()=>{ const tp=el('select',{},AGTIPOS.map(t=>el('option',{},t))); tp.value='Aviso'; const dt=el('input',{type:'date',value:iso(TODAY)}); const tt=el('input',{type:'text',value:p.pedido});
+        return [el('label',{},'Tipo',tp),el('label',{},'Data',dt),el('label',{},'Título',tt),async()=>{ await db.collection('agenda').doc('A'+Date.now().toString(36)).set({tipo:tp.value,data:dt.value||'',hora:'',titulo:tt.value.trim()||p.pedido,texto:p.porque||'',local:p.local,pendencia:p.id,frente:'',quem:'Maria (Sinarco)',publico:true,criadoEm:Date.now()});
+          await fecha({situacao:'Virou agenda',aguardando:'',avaliacao:'foi para a agenda em '+fmt(d(dt.value||iso(TODAY)))}); await hist('Avaliada: foi para a agenda.'); return 'Incluída na agenda.'; }]; },
+      pend:()=>{ const ag=el('input',{type:'text',list:'dxQuemT',placeholder:'Aguardando quem? (ex.: Move, Copasa)'}); const dl=el('datalist',{id:'dxQuemT'},['Move','Gleidstone (Move)','Copasa','Cemig','Prefeitura','Sinarco'].map(v=>el('option',{value:v}))); const pq=el('input',{type:'text',value:p.porque,placeholder:'O que falta'});
+        return [el('label',{},'Aguardando',ag,dl),el('label',{},'O que falta',pq),async()=>{ await fecha({situacao:ag.value.trim()?'Aguardando informação':'Aberta',aguardando:ag.value.trim(),porque:pq.value.trim(),avaliacao:'mantida como pendência'}); await hist('Avaliada: mantida como pendência'+(ag.value.trim()?' aguardando '+ag.value.trim():'')+'.'); return 'Mantida como pendência.'; }]; },
+      desc:()=>{ const mt=el('input',{type:'text',placeholder:'Motivo (ex.: fora do contrato, repetida, já resolvida)'});
+        return [el('label',{},'Motivo',mt),async()=>{ if(!mt.value.trim()) throw new Error('motivo'); await fecha({situacao:'Descartada',aguardando:'',avaliacao:'descartada: '+mt.value.trim()}); await hist('Avaliada: descartada. Motivo: '+mt.value.trim()+'.'); return 'Descartada.'; }]; } };
+    const abre=k=>{ area.textContent=''; const parts=forms[k](); const run=parts.pop(); const b=el('button',{type:'button',class:'btn primary'},'Confirmar');
+      b.addEventListener('click',async()=>{ b.disabled=true; try{ msg.className='msg ok'; msg.textContent=await run(); }catch(e){ msg.className='msg err'; msg.textContent=e&&e.message==='motivo'?'Escreva o motivo.':'Não foi possível salvar.'; writeErr(e); b.disabled=false; } });
+      area.append(el('div',{class:'tgrid'},parts),el('div',{class:'crow'},b,el('button',{type:'button',class:'btn',onclick:()=>{area.textContent='';}},'Cancelar'))); };
+    const dias=p.data?Math.round((TODAY-d(p.data))/DAY):0;
+    box.appendChild(el('div',{class:'titem'+(/Urgente/.test(p.urgencia)?' urg':'')},
+      el('div',{class:'ttop'},el('b',{},p.id+' · '+p.pedido),el('span',{class:'pill',style:'--c:var(--accent);--bgc:transparent'},p.urgencia||'Normal')),
+      el('div',{class:'cm'},[p.local,p.deQuem?'pedido por '+p.deQuem:'',p.quem&&p.quem!==p.deQuem?'registrado por '+p.quem:'',dias<=0?'hoje':'há '+dias+' dia'+(dias>1?'s':'')].filter(Boolean).join(' · ')),
+      p.porque?el('div',{class:'why'},p.porque):null, ms.length?gallery(ms,true):null,
+      can?el('div',{class:'crow tbt'},el('button',{type:'button',class:'btn primary',onclick:()=>abre('frente')},'Virar frente'),el('button',{type:'button',class:'btn',onclick:()=>abre('ocorr')},'Ocorrência em frente'),el('button',{type:'button',class:'btn',onclick:()=>abre('agenda')},'Agenda'),el('button',{type:'button',class:'btn',onclick:()=>abre('pend')},'Manter como pendência'),el('button',{type:'button',class:'btn mexc',onclick:()=>abre('desc')},'Descartar'),el('button',{type:'button',class:'btn',onclick:()=>showPend(p.id)},'Ver')):null,
+      area,msg)); }
+}
+
 /* ---------- abas ---------- */
 const VIEWS={painel:'t-painel',programadas:'t-prog',agenda:'t-agenda',relatorios:'t-rel',montar:'t-montar',campo:'t-campo',lancamentos:'t-lanc',conversas:'t-conv'};
 let relSel=null;
@@ -2167,7 +2225,7 @@ $('limpar').addEventListener('click',()=>{state.sit=null;state.q='';state.equipe
 let rt, lastNarrow=NARROW(); addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{renderGantt(); if(NARROW()!==lastNarrow){ lastNarrow=NARROW(); renderMapa(); }},150);});
 
 function qres(){ const r=$('qres'); if(!r) return; const on=state.q||state.equipe||state.parada||state.sit; if(!on){r.textContent='';return;} const t=qTerms(); const np=pen.filter(p=>hit(t,[p.pedido,p.local,p.quem,p.id,p.porque,p.aguardando])).length; r.textContent=filtered().length+' frentes'+(state.q?' · '+np+' pendências':'')+' encontradas'; }
-function render(){derive();fillSelects();renderAlertas();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderAgenda();renderMontar();renderRelatorios();renderRelAprov();renderFalta();renderCampo();renderMsgs();renderConv();renderLog();refreshDet();qres();
+function render(){derive();fillSelects();renderTriagem();renderAlertas();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderAgenda();renderMontar();renderRelatorios();renderRelAprov();renderFalta();renderCampo();renderMsgs();renderConv();renderLog();refreshDet();qres();
   $('asof').textContent=(loaded.frentes&&loaded.eventos)?(window.__PUBLIC__?'Atualizado em '+window.__PUBLIC__:'Atualizado ao vivo · '+fmt(TODAY)+'/'+TODAY.getFullYear()):'carregando…';}
 
 function banner(t){const b=$('banner'); if(!t){b.hidden=true;return;} b.textContent=t; b.hidden=false;}
@@ -2228,7 +2286,7 @@ render();
     renderAgenda();
   },()=>{});
   db.collection('pendencias').onSnapshot(s=>{
-    PD=s.docs.map(x=>{const v=x.data()||{};return {id:x.id,pedido:str(v.pedido),quem:str(v.quem),deQuem:str(v.deQuem),data:isoOk(v.data),local:str(v.local),resposta:str(v.resposta),situacao:str(v.situacao)||'Aberta',obs:str(v.obs),aguardando:str(v.aguardando),porque:str(v.porque),frente:str(v.frente)};});
+    PD=s.docs.map(x=>{const v=x.data()||{};return {id:x.id,pedido:str(v.pedido),quem:str(v.quem),deQuem:str(v.deQuem),data:isoOk(v.data),local:str(v.local),resposta:str(v.resposta),situacao:str(v.situacao)||'Aberta',obs:str(v.obs),aguardando:str(v.aguardando),porque:str(v.porque),frente:str(v.frente),origem:str(v.origem),urgencia:str(v.urgencia),geo:(v.geo&&isFinite(v.geo.lat)&&isFinite(v.geo.lng))?{lat:+v.geo.lat,lng:+v.geo.lng}:null,avaliacao:str(v.avaliacao)};}).filter(p=>!(window.__PUBLIC__&&(p.situacao==='Em avaliação'||p.situacao==='Descartada')));
     if(!s.metadata.fromCache) loaded.pendencias=true; done(); render();
   },onErr);
 })();
