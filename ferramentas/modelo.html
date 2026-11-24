@@ -435,6 +435,28 @@ header.top{display:block}
 .cbar .cs{z-index:1}
 .cbar .ctoday{z-index:2}
 .cantes{position:absolute;left:1px;top:0;bottom:0;z-index:3;font-size:9px;line-height:14px;color:#fff}
+/* agenda e avisos */
+.agc .pcd{border-top-color:var(--c)}
+.agtipo{display:inline-block;font-size:11px;font-weight:700;color:var(--c);border:1px solid color-mix(in srgb,var(--c) 45%,var(--line));border-radius:20px;padding:0 7px;margin-right:4px;vertical-align:2px}
+.aglinks{display:flex;gap:12px;font-size:12.5px;margin-top:3px}
+.aglinks a{color:var(--accent);font-weight:600}
+.agbt{display:flex;gap:6px;align-items:center}
+.agpass summary{cursor:pointer;font-weight:600;color:var(--accent);padding:6px 2px}
+.agpass .card{margin-top:8px}
+#agForm{padding-bottom:14px}
+#agForm .fgrid{padding:0 16px}
+#agForm .chk{display:flex;flex-direction:row;align-items:center;gap:6px}
+#agForm .chk input{width:auto}
+#agForm .frow{display:flex;gap:8px;padding:10px 16px 0}
+#agForm .msg{padding:4px 16px 0}
+.agtopo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--plan);border-radius:10px;padding:9px 12px;margin-bottom:12px}
+.agtopo[hidden]{display:none}
+.agtt{font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+.agchip{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-left:3px solid var(--c);border-radius:7px;padding:4px 9px;cursor:pointer;text-align:left}
+.agchip .agcd{font-weight:700}
+.agmais{font:inherit;font-size:12.5px;color:var(--accent);background:none;border:0;cursor:pointer;font-weight:600}
+@media (max-width:560px){.agc .agbt{grid-column:2}}
+.mwrap{overscroll-behavior:auto}
 </style>
 </head>
 <body>
@@ -453,6 +475,7 @@ header.top{display:block}
   <nav class="tabs" role="tablist">
     <button class="tab" role="tab" id="t-painel" aria-selected="true" aria-controls="painel" type="button">Painel</button>
     <button class="tab" role="tab" id="t-prog" aria-selected="false" aria-controls="programadas" type="button">Programadas</button>
+    <button class="tab" role="tab" id="t-agenda" aria-selected="false" aria-controls="agenda" type="button">Agenda e avisos</button>
     <button class="tab" role="tab" id="t-campo" aria-selected="false" aria-controls="campo" type="button">Campo</button>
     <button class="tab" role="tab" id="t-lanc" aria-selected="false" aria-controls="lancamentos" type="button">Lançamentos</button>
     <button class="tab" role="tab" id="t-conv" aria-selected="false" aria-controls="conversas" type="button">Conversas</button>
@@ -462,6 +485,7 @@ header.top{display:block}
   <div class="banner" id="banner" hidden></div>
   <div class="view" id="painel" role="tabpanel" aria-labelledby="t-painel">
     <section class="card alertas" id="alertas" hidden aria-label="Pontos de atenção"></section>
+    <section class="agtopo" id="agtopo" hidden aria-label="Próximos na agenda"></section>
     <section class="tiles" id="tiles" aria-label="Resumo por situação"></section>
     <section class="card aguardando" id="aguardando" hidden aria-label="Aguardando retorno da fiscalização ou da Prefeitura"></section>
     <div class="bar" role="group" aria-label="Filtros">
@@ -499,6 +523,10 @@ header.top{display:block}
 
   <div class="view" id="programadas" role="tabpanel" aria-labelledby="t-prog" hidden>
     <div class="progwrap" id="proglist"></div>
+  </div>
+
+  <div class="view" id="agenda" role="tabpanel" aria-labelledby="t-agenda" hidden>
+    <div class="progwrap" id="agendabox"></div>
   </div>
 
   <div class="view" id="campo" role="tabpanel" aria-labelledby="t-campo" hidden>
@@ -1392,7 +1420,10 @@ function renderMapa(){
   const zctl=el('div',{class:'mzoom',role:'group','aria-label':'Zoom do mapa'},zin,zout,zres,zlbl);
   applyZ(z0);
   const rel=e=>{ const r=wrap.getBoundingClientRect(); return [e.clientX-r.left,e.clientY-r.top]; };
-  wrap.addEventListener('wheel',e=>{ if(!(e.ctrlKey||e.metaKey)) return; e.preventDefault(); const [cx,cy]=rel(e); setZ((mapaZoom[mapaVista]||1)*Math.exp(-e.deltaY*0.0025),cx,cy); },{passive:false});
+  wrap.addEventListener('wheel',e=>{ const z=mapaZoom[mapaVista]||1; const pinch=e.ctrlKey||e.metaKey;
+    if(!pinch&&Math.abs(e.deltaX)>Math.abs(e.deltaY)) return;
+    if(!pinch&&((z<=1&&e.deltaY>0)||(z>=ZMAX&&e.deltaY<0))) return; // no limite, a roda volta a rolar a página
+    e.preventDefault(); const [cx,cy]=rel(e); const dy=e.deltaMode===1?e.deltaY*33:e.deltaY; setZ(z*Math.exp(-Math.max(-120,Math.min(120,dy))*0.004),cx,cy); },{passive:false});
   stage.addEventListener('dblclick',e=>{ if(marcando||e.target.closest('.pin')) return; e.preventDefault(); const [cx,cy]=rel(e); setZ((mapaZoom[mapaVista]||1)*(e.shiftKey?1/1.8:1.8),cx,cy); });
   let drag=null, dragged=false;
   stage.addEventListener('pointerdown',e=>{ if(e.pointerType!=='mouse'||e.button!==0) return; drag={x:e.clientX,y:e.clientY,sl:wrap.scrollLeft,st:wrap.scrollTop}; dragged=false; });
@@ -1414,7 +1445,7 @@ function renderMapa(){
   wrap.appendChild(stage); box.appendChild(el('div',{class:'mbox'},wrap,zctl));
   if(z0>1&&mapaPos[mapaVista]){ requestAnimationFrame(()=>{ wrap.scrollLeft=mapaPos[mapaVista][0]; wrap.scrollTop=mapaPos[mapaVista][1]; }); }
   wrap.addEventListener('scroll',()=>{ mapaPos[mapaVista]=[wrap.scrollLeft,wrap.scrollTop]; },{passive:true});
-  box.appendChild(el('p',{class:'mhint'},'Use os botões + e −, pince com dois dedos no celular ou dê dois cliques no mapa para aproximar. Com zoom, arraste para mover.'));
+  box.appendChild(el('p',{class:'mhint'},'No computador, gire a roda do mouse sobre o mapa para aproximar ou afastar e arraste para mover. No celular, pince com dois dedos. Os botões + e − também funcionam.'));
   const leg=el('div',{class:'mleg'},['andamento','parada','pendente','concluida'].map(k=>el('span',{class:'k'},el('span',{class:'sw',style:'background:'+SIT[k].c}),SIT[k].label)),el('span',{class:'k'},el('span',{class:'sw aprox'}),'Local aproximado'),el('span',{class:'attr'},'Mapa © colaboradores do OpenStreetMap'));
   box.appendChild(leg);
   const outros=sem.concat(fora);
@@ -1703,8 +1734,65 @@ function renderConv(){
     box.appendChild(el('section',{class:'card cbox'},el('h2',{},'Conversas salvas ',el('small',{},CV.length+' no total')),l)); }
 }
 
+/* ---------- agenda e avisos ---------- */
+let AG=[], agEdit=null;
+const AGTIPOS=['Entrega','Combinado','Reunião','Visita','Aviso','Pergunta'];
+const AGCOR={Entrega:'var(--run)',Combinado:'var(--plan)','Reunião':'var(--accent)',Visita:'var(--accent)',Aviso:'var(--pause)',Pergunta:'var(--pend)'};
+const DSEM=['dom','seg','ter','qua','qui','sex','sáb'];
+const MOVE_RE=/move|gleid|wesley|patrick|\bana\b|fiscaliza/i;
+function agCard(a,can){
+  const dt=d(a.data), hj=iso(TODAY), quando=!dt?'sem data':a.data===hj?'hoje':a.data===iso(new Date(TODAY.getTime()+DAY))?'amanhã':a.data<hj?'passou':DSEM[dt.getDay()];
+  const links=[]; if(a.pendencia&&pen.some(p=>p.id===a.pendencia)) links.push(el('a',{href:'#',onclick:e=>{e.preventDefault();e.stopPropagation();showPend(a.pendencia);}},'Ver pendência '+a.pendencia));
+  if(a.frente&&dem.some(x=>x.id===a.frente)) links.push(el('a',{href:'#',onclick:e=>{e.preventDefault();e.stopPropagation();showDet(a.frente);}},'Ver frente'));
+  return el('div',{class:'pcard agc',style:'--c:'+(AGCOR[a.tipo]||'var(--muted)')},
+    el('div',{class:'pcd agd'},dt?el('b',{},fmt(dt)):el('b',{},'—'),quando+(a.hora?' · '+a.hora:'')),
+    el('div',{class:'pcb'},el('div',{class:'pct'},el('span',{class:'agtipo'},a.tipo),' ',a.titulo),a.texto?el('div',{class:'pce'},a.texto):null,
+      el('div',{class:'pcm'},[a.local?'Local: '+a.local:'',a.quem?'Registrado por '+a.quem:'',(!window.__PUBLIC__&&!a.publico)?'só interno':''].filter(Boolean).join(' · ')),
+      links.length?el('div',{class:'aglinks'},links):null),
+    can?el('div',{class:'agbt'},el('button',{type:'button',class:'btn',onclick:()=>{agEdit=a;renderAgenda();$('agForm').scrollIntoView({behavior:'smooth',block:'center'});}},'Editar'),delBtn(()=>db.collection('agenda').doc(a._id).delete())):null);
+}
+function renderAgenda(){
+  const hj=iso(TODAY);
+  const prox=AG.filter(a=>!a.data||a.data>=hj).sort((a,b)=>(a.data||'9')<(b.data||'9')?-1:(a.data||'9')>(b.data||'9')?1:a.criadoEm-b.criadoEm);
+  const pass=AG.filter(a=>a.data&&a.data<hj).sort((a,b)=>a.data<b.data?1:-1);
+  const perg=pen.filter(p=>!PFECH.includes(p.situacao)&&p.situacao!=='Respondida'&&MOVE_RE.test(p.aguardando)).sort((a,b)=>(a.data||'')<(b.data||'')?-1:1);
+  const tab=$('t-agenda'); if(tab) tab.textContent='Agenda e avisos'+(prox.length?' ('+prox.length+')':'');
+  // faixa no topo do painel
+  const top=$('agtopo'); if(top){ top.textContent=''; const pr=prox.slice(0,3); top.hidden=!pr.length;
+    if(pr.length){ top.appendChild(el('b',{class:'agtt'},'Agenda')); pr.forEach(a=>top.appendChild(el('button',{type:'button',class:'agchip',style:'--c:'+(AGCOR[a.tipo]||'var(--muted)'),onclick:()=>go('agenda')},el('span',{class:'agcd'},a.data?(a.data===hj?'Hoje':fmt(d(a.data))):'Sem data'),' ',a.titulo))); if(prox.length>3) top.appendChild(el('button',{type:'button',class:'agmais',onclick:()=>go('agenda')},'+'+(prox.length-3)+' na agenda')); } }
+  const box=$('agendabox'); if(!box) return; box.textContent='';
+  const can=canWrite!==false&&db&&!window.__PUBLIC__;
+  const sec=(t,sub,arr,mk,vazio)=>{ const s=el('section',{class:'card'},el('h2',{},t+' ',el('small',{},sub))); const l=el('div',{class:'pclist'}); if(!arr.length) l.appendChild(el('div',{class:'empty'},vazio)); arr.forEach(x=>l.appendChild(mk(x))); s.appendChild(l); return s; };
+  box.appendChild(sec('Próximos',prox.length?'entregas, combinados e avisos em ordem de data':'',prox,a=>agCard(a,can),'Nada agendado por enquanto.'));
+  box.appendChild(sec('Perguntas em aberto para a fiscalização',perg.length+(perg.length===1?' pergunta aguardando resposta':' perguntas aguardando resposta'),perg,p=>{ const dias=p.data?Math.round((TODAY-d(p.data))/DAY):0;
+    return el('div',{class:'pcard',tabindex:'0',role:'button',onclick:()=>showPend(p.id),onkeydown:e=>{if(e.key==='Enter')showPend(p.id);}},el('div',{class:'pcd'},el('b',{},p.id),dias<=0?'hoje':'há '+dias+' d'),
+      el('div',{class:'pcb'},el('div',{class:'pct'},p.pedido),p.porque?el('div',{class:'pce'},p.porque):null,el('div',{class:'pcm'},['Aguardando '+p.aguardando,p.quem?'perguntado por '+p.quem:'',p.data?'em '+fmt(d(p.data)):''].filter(Boolean).join(' · ')))); },'Nenhuma pergunta aguardando a fiscalização.'));
+  if(pass.length){ const s=sec('Já passou',pass.length+(pass.length===1?' item':' itens'),pass.slice(0,30),a=>agCard(a,can),''); const det=el('details',{class:'agpass'},el('summary',{},'Ver o que já passou ('+pass.length+')')); det.appendChild(s); box.appendChild(det); }
+  if(can) box.appendChild(agForm());
+}
+function agForm(){
+  const a=agEdit||{};
+  const f=el('form',{class:'card',id:'agForm',novalidate:''});
+  const tipo=el('select',{id:'agTipo'},AGTIPOS.map(t=>el('option',{},t))); tipo.value=a.tipo||'Entrega';
+  const data=el('input',{type:'date',id:'agData'}); data.value=a.data||'';
+  const hora=el('input',{type:'text',id:'agHora',placeholder:'ex.: 8h',maxlength:'10'}); hora.value=a.hora||'';
+  const tit=el('input',{type:'text',id:'agTit',placeholder:'ex.: Entrega do container no pátio 2',maxlength:'160'}); tit.value=a.titulo||'';
+  const tx=el('textarea',{id:'agTx',rows:'3',placeholder:'Detalhes (opcional)'}); tx.value=a.texto||'';
+  const loc=el('input',{type:'text',id:'agLoc',maxlength:'160'}); loc.value=a.local||'';
+  const pd=el('select',{id:'agPd'},el('option',{value:''},'Nenhuma'),pen.map(p=>el('option',{value:p.id},p.id+' · '+p.pedido.slice(0,60)))); pd.value=a.pendencia||'';
+  const pub=el('input',{type:'checkbox',id:'agPub'}); pub.checked=a.publico!==false;
+  const m=el('p',{class:'msg',id:'agMsg'});
+  f.append(el('h2',{},agEdit?'Editar item da agenda':'Novo item na agenda ',el('small',{},'entrega, combinado, reunião, aviso…')),
+    el('div',{class:'fgrid'},el('label',{},'Tipo',tipo),el('label',{},'Data',data),el('label',{},'Horário',hora),el('label',{class:'full'},'O quê',tit),el('label',{class:'full'},'Detalhes',tx),el('label',{},'Local',loc),el('label',{},'Pendência ligada',pd),el('label',{class:'chk full'},pub,' Mostrar no site público')),
+    el('div',{class:'frow'},el('button',{type:'submit',class:'btn primary'},agEdit?'Salvar alterações':'Adicionar à agenda'),agEdit?el('button',{type:'button',class:'btn',onclick:()=>{agEdit=null;renderAgenda();}},'Cancelar'):null),m);
+  f.addEventListener('submit',async e=>{ e.preventDefault(); if(!tit.value.trim()){ m.className='msg err'; m.textContent='Escreva o que vai acontecer.'; return; }
+    const v={tipo:tipo.value,data:data.value||'',hora:hora.value.trim(),titulo:tit.value.trim(),texto:tx.value.trim(),local:loc.value.trim(),pendencia:pd.value,publico:pub.checked,quem:a.quem||'Maria (Sinarco)',criadoEm:a.criadoEm||Date.now()};
+    try{ await db.collection('agenda').doc(a._id||('A'+Date.now().toString(36)+Math.random().toString(36).slice(2,5))).set(v); agEdit=null; renderAgenda(); }catch(err){ m.className='msg err'; m.textContent='Não foi possível salvar.'; writeErr(err); } });
+  return f;
+}
+
 /* ---------- abas ---------- */
-const VIEWS={painel:'t-painel',programadas:'t-prog',campo:'t-campo',lancamentos:'t-lanc',conversas:'t-conv'};
+const VIEWS={painel:'t-painel',programadas:'t-prog',agenda:'t-agenda',campo:'t-campo',lancamentos:'t-lanc',conversas:'t-conv'};
 function go(name){
   if(!VIEWS[name]||(window.__PUBLIC__&&(name==='lancamentos'||name==='campo'||name==='conversas'))) name='painel';
   for(const [v,t] of Object.entries(VIEWS)){ $(v).hidden=v!==name; $(t).setAttribute('aria-selected',String(v===name)); }
@@ -1727,7 +1815,7 @@ $('limpar').addEventListener('click',()=>{state.sit=null;state.q='';state.equipe
 let rt, lastNarrow=NARROW(); addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{renderGantt(); if(NARROW()!==lastNarrow){ lastNarrow=NARROW(); renderMapa(); }},150);});
 
 function qres(){ const r=$('qres'); if(!r) return; const on=state.q||state.equipe||state.parada||state.sit; if(!on){r.textContent='';return;} const t=qTerms(); const np=pen.filter(p=>hit(t,[p.pedido,p.local,p.quem,p.id,p.porque,p.aguardando])).length; r.textContent=filtered().length+' frentes'+(state.q?' · '+np+' pendências':'')+' encontradas'; }
-function render(){derive();fillSelects();renderAlertas();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderFalta();renderCampo();renderMsgs();renderConv();renderLog();refreshDet();qres();
+function render(){derive();fillSelects();renderAlertas();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderAgenda();renderFalta();renderCampo();renderMsgs();renderConv();renderLog();refreshDet();qres();
   $('asof').textContent=(loaded.frentes&&loaded.eventos)?(window.__PUBLIC__?'Atualizado em '+window.__PUBLIC__:'Atualizado ao vivo · '+fmt(TODAY)+'/'+TODAY.getFullYear()):'carregando…';}
 
 function banner(t){const b=$('banner'); if(!t){b.hidden=true;return;} b.textContent=t; b.hidden=false;}
@@ -1778,6 +1866,10 @@ render();
     db.collection('conversas').onSnapshot(s=>{ CV=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),origem:str(v.origem),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0,situacao:str(v.situacao)};}); renderConv(); },()=>{});
     db.collection('perguntas').onSnapshot(s=>{ PG=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),ref:str(v.ref),respondida:v.respondida===true,criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0};}); renderCampo(); },()=>{});
   }
+  db.collection('agenda').onSnapshot(s=>{
+    AG=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,data:isoOk(v.data)||'',hora:str(v.hora),tipo:str(v.tipo)||'Aviso',titulo:str(v.titulo),texto:str(v.texto),local:str(v.local),pendencia:str(v.pendencia),frente:str(v.frente),quem:str(v.quem),publico:v.publico!==false,criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0};}).filter(a=>a.titulo&&(!window.__PUBLIC__||a.publico));
+    renderAgenda();
+  },()=>{});
   db.collection('pendencias').onSnapshot(s=>{
     PD=s.docs.map(x=>{const v=x.data()||{};return {id:x.id,pedido:str(v.pedido),quem:str(v.quem),deQuem:str(v.deQuem),data:isoOk(v.data),local:str(v.local),resposta:str(v.resposta),situacao:str(v.situacao)||'Aberta',obs:str(v.obs),aguardando:str(v.aguardando),porque:str(v.porque),frente:str(v.frente)};});
     if(!s.metadata.fromCache) loaded.pendencias=true; done(); render();
