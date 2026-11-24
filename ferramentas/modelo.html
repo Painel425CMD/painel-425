@@ -525,6 +525,11 @@ header.top{display:block}
 .tact label{display:grid;gap:3px;font-size:12px;color:var(--muted)}
 .tact input,.tact select{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:6px 8px;width:100%}
 .mexc{color:var(--risk)}
+.tprazo{font-size:12.5px;color:var(--muted);margin-top:2px}
+.tprazo.atras{color:#b42318;font-weight:600}
+.titem.late{border-left:4px solid #b42318}
+.ttipo{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;margin:6px 0}
+.ttipo select,.ttipo input{font:inherit;padding:4px 6px}
 </style>
 </head>
 <body>
@@ -1657,6 +1662,13 @@ function renderLog(){
 let RC=[], PG=[];
 const DIAS_SEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 let DX_MSG='';
+const DX_TIPOS=['Roçada e limpeza','Tapa-buraco / OTB','Drenagem','Calçamento / meio-fio','Pavimentação','Cerca','Sinalização','Entrega de materiais','Aditivo de demandas'];
+function dxTipos(){ const extra=[...new Set(pen.map(p=>p.tipo).filter(t=>t&&!DX_TIPOS.includes(t)))].sort(); return [...DX_TIPOS,...extra]; }
+function tipoSel(atual){ const sel=el('select',{},[el('option',{value:''},'Escolha o tipo'),...dxTipos().map(t=>el('option',{value:t},t)),el('option',{value:'__outro'},'Outro (especificar)')]); const out=el('input',{type:'text',placeholder:'Qual? (novo tipo)',hidden:''}); if(atual){ if(dxTipos().includes(atual)) sel.value=atual; else { sel.value='__outro'; out.hidden=false; out.value=atual; } } sel.addEventListener('change',()=>{ out.hidden=sel.value!=='__outro'; if(!out.hidden) out.focus(); }); return {sel,out,val:()=>sel.value==='__outro'?out.value.trim():sel.value}; }
+const DX_PRAZO=24*3600*1000;
+function prazoTxt(p){ if(!p.criadoEm) return null; const lim=p.criadoEm+DX_PRAZO, r=lim-Date.now(); const h=Math.abs(r)/3600000; const q=h<1?Math.round(h*60)+' min':Math.round(h)+'h'; return {atras:r<0,txt:(r<0?'prazo vencido há '+q:'faltam '+q)+' · até '+fdh(lim)}; }
+function aceita(p){ return /^Virou |^Aguardando|^Aberta$/.test(p.situacao)&&p.origem==='campo'&&p.avaliadoEm; }
+function demandasAceitas(D){ return pen.filter(p=>aceita(p)&&iso(new Date(p.avaliadoEm))===D).map(p=>({id:p.id,tipo:p.tipo||'',pedido:p.pedido,local:p.local,destino:p.avaliacao||p.situacao})); }
 function demandaExtraBox(){
   const s=el('section',{class:'card cbox dext'});
   const abrir=el('button',{type:'button',class:'btn big',onclick:()=>{ f.hidden=!f.hidden; abrir.setAttribute('aria-expanded',String(!f.hidden)); if(!f.hidden) oq.focus(); },'aria-expanded':'false'},'＋ Nova demanda extraordinária');
@@ -1665,6 +1677,7 @@ function demandaExtraBox(){
   const quem=el('input',{type:'text',placeholder:'Quem pediu (ex.: Gleidstone/Move, Prefeitura, morador)',list:'dxQuem'});
   const dlq=el('datalist',{id:'dxQuem'},['Gleidstone (Move)','Patrick (Move)','Wesley (Move)','Ana (Move)','Prefeitura','Morador','Iniciativa da Sinarco'].map(v=>el('option',{value:v})));
   const urg=el('select',{},['Normal','Urgente (hoje)','Pode esperar'].map(v=>el('option',{},v)));
+  const tps=tipoSel('');
   const ob=el('textarea',{rows:'2',placeholder:'Observação (opcional)'});
   const fin=el('input',{type:'file',accept:'image/*,video/*',multiple:'',hidden:''}); let files=[]; const fl=el('span',{class:'msg'});
   fin.addEventListener('change',()=>{ files=[...fin.files]; fl.textContent=files.length?files.length+' arquivo(s) anexado(s)':''; });
@@ -1674,20 +1687,20 @@ function demandaExtraBox(){
   const env=el('button',{type:'submit',class:'btn primary big'},'Registrar demanda');
   const ok=el('p',{class:'msg ok',style:'padding:0 16px 12px'},DX_MSG); ok.hidden=!DX_MSG;
   const f=el('form',{class:'cin',hidden:''},
-    el('label',{class:'cq'},'O que é',oq),el('label',{class:'cq'},'Onde',onde),el('label',{class:'cq'},'Quem pediu',quem,dlq),el('label',{class:'cq'},'Urgência',urg),el('label',{class:'cq'},'Observação',ob),
+    el('label',{class:'cq'},'O que é',oq),el('label',{class:'cq'},'Onde',onde),el('label',{class:'cq'},'Quem pediu',quem,dlq),el('label',{class:'cq'},'Tipo',tps.sel,tps.out),el('label',{class:'cq'},'Urgência',urg),el('label',{class:'cq'},'Observação',ob),
     el('div',{class:'crow'},el('button',{type:'button',class:'btn',onclick:()=>fin.click()},'Foto ou vídeo'),bGeo,fin),el('div',{},fl,' ',gm),el('div',{class:'crow'},env,m));
   f.addEventListener('submit',async ev=>{ ev.preventDefault(); if(!oq.value.trim()||!onde.value.trim()){ m.className='msg err'; m.textContent='Preencha o que é e onde.'; return; }
     env.disabled=true; m.className='msg'; m.textContent='Registrando…';
     const nums=PD.map(p=>+(p.id.match(/^P-(\d+)$/)||[0,0])[1]); const id='P-'+String(Math.max(0,...nums)+1).padStart(2,'0');
     const agora=new Date(); const hh=agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     const obs=['Demanda extraordinária registrada na aba Campo por '+quemSou()+' em '+fmt(TODAY)+' às '+hh+'.','Urgência: '+urg.value+'.',geo?'Localização: '+geo.lat+', '+geo.lng+'.':''].filter(Boolean).join(' ');
-    try{ await db.collection('pendencias').doc(id).set({pedido:oq.value.trim(),local:onde.value.trim(),quem:quem.value.trim()||quemSou(),deQuem:quem.value.trim()||'',data:iso(TODAY),situacao:'Em avaliação',aguardando:'Avaliação da Maria',porque:ob.value.trim(),obs,resposta:'',frente:'',origem:'campo',registradoPor:quemSou(),urgencia:urg.value,geo:geo||null,criadoEm:Date.now()});
+    try{ await db.collection('pendencias').doc(id).set({pedido:oq.value.trim(),local:onde.value.trim(),quem:quem.value.trim()||quemSou(),deQuem:quem.value.trim()||'',data:iso(TODAY),situacao:'Em avaliação',aguardando:'Avaliação da Maria',porque:ob.value.trim(),obs,resposta:'',frente:'',origem:'campo',registradoPor:quemSou(),urgencia:urg.value,tipo:tps.val(),geo:geo||null,criadoEm:Date.now()});
       if(files.length) await uploadMedia(files,id,'',(t,c)=>{ m.className='msg'+(c?' '+c:''); m.textContent=t; });
-      m.className='msg ok'; m.textContent='Demanda '+id+' registrada. A Maria vai avaliar e decidir se vira frente, ocorrência, agenda ou pendência.'; DX_MSG=m.textContent; setTimeout(renderCampo,50); setTimeout(()=>{DX_MSG='';},20000); oq.value=onde.value=quem.value=ob.value=''; files=[]; geo=null; fl.textContent=''; gm.textContent='';
+      m.className='msg ok'; m.textContent='Demanda '+id+' registrada. A Maria avalia em até 24 horas e decide se vira frente, ocorrência, agenda ou pendência.'; DX_MSG=m.textContent; setTimeout(renderCampo,50); setTimeout(()=>{DX_MSG='';},20000); oq.value=onde.value=quem.value=ob.value=''; tps.sel.value=''; tps.out.value=''; tps.out.hidden=true; files=[]; geo=null; fl.textContent=''; gm.textContent='';
     }catch(e){ writeErr(e); m.className='msg err'; m.textContent='Não foi possível registrar. Tente de novo ou mande pelo WhatsApp.'; }
     env.disabled=false; });
   const rec=pen.filter(p=>p.origem==='campo'&&p.data&&(TODAY-d(p.data))/DAY<=7).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
-  const lst=rec.length?el('div',{class:'clist',style:'padding:0 16px 12px'},el('b',{class:'cm'},'Demandas dos últimos 7 dias'),rec.map(p=>el('button',{type:'button',class:'citem',onclick:()=>showPend(p.id)},el('span',{class:'ct'},el('b',{},p.id+' · '+p.pedido),el('span',{class:'cm'},(p.local||'')+' · '+(p.situacao==='Em avaliação'?'aguardando avaliação':p.situacao)+(p.avaliacao?' · '+p.avaliacao:'')))))):null;
+  const lst=rec.length?el('div',{class:'clist',style:'padding:0 16px 12px'},el('b',{class:'cm'},'Demandas dos últimos 7 dias'),rec.map(p=>el('button',{type:'button',class:'citem',onclick:()=>showPend(p.id)},el('span',{class:'ct'},el('b',{},p.id+' · '+p.pedido),el('span',{class:'cm'},(p.local||'')+' · '+(p.tipo?p.tipo+' · ':'')+(p.situacao==='Em avaliação'?'aguardando avaliação'+(p.criadoEm?' (até '+fdh(p.criadoEm+DX_PRAZO)+')':''):p.situacao)+(p.avaliacao?' · '+p.avaliacao:'')))))):null;
   s.append(el('h2',{},'Demanda extraordinária ',el('small',{},'chegou um pedido fora da programação? registre aqui')),ok,el('div',{style:'padding:0 16px 14px'},abrir),f,lst);
   return s;
 }
@@ -2113,6 +2126,7 @@ function renderRelatorios(){
       el('h2',{},'Relatório diário – '+fmt(dt)+'/'+dt.getFullYear()+' ',el('small',{},DSEM[dt.getDay()]+(R.aprovadoEm?' · aprovado por '+(R.aprovadoPor||'Sinarco')+' em '+fdh(R.aprovadoEm):''))),
       el('div',{class:'relsec'},el('h3',{},'Serviços executados'),waHtml(R.exec)),
       el('div',{class:'relsec'},el('h3',{},'Fotos do dia ',el('small',{},fotos.length+(fotos.length===1?' foto':' fotos'))),fotos.length?Object.entries(porFr).map(([fid,ms])=>{ const x=dem.find(y=>y.id===fid); return el('div',{class:'relfr'},el('b',{},x?x.local:fid),gallery(ms,false)); }):el('p',{class:'msg'},'Sem fotos publicadas neste dia.')),
+      R.demandas&&R.demandas.length?el('div',{class:'relsec'},el('h3',{},'Demandas extraordinárias aceitas'),el('ul',{},R.demandas.map(x=>el('li',{},el('b',{},x.id),' · '+(x.tipo?x.tipo+' · ':'')+x.pedido+(x.local?' – '+x.local:'')+' · '+x.destino)))):null,
       paradas.length?el('div',{class:'relsec'},el('h3',{},'Frentes paradas'),el('ul',{},paradas.map(x=>el('li',{},el('b',{},x.local),' · desde '+fmt(d(x.paradaAgora.a))+' · '+(x.paradaAgora.motivo||'motivo a confirmar'))))):null,
       R.prog?el('div',{class:'relsec'},el('h3',{},'Programação'+(R.progData?' de '+fmt(d(R.progData)):'')),waHtml(R.prog)):null,
       perg.length?el('div',{class:'relsec'},el('h3',{},'Aguardando a fiscalização'),el('ul',{},perg.map(p=>el('li',{},el('b',{},p.id),' · '+p.pedido+(p.data?' · desde '+fmt(d(p.data)):''))))):null,
@@ -2140,13 +2154,14 @@ function renderRelAprov(){
   const info=el('div',{class:'msg'});
   const link=SITE_URL+'#relatorios/'+D, linha='Relatório de '+fmt(d(D))+' publicado: '+link;
   const est=R&&R.publico?el('p',{class:'msg ok'},'Aprovado em '+fdh(R.aprovadoEm)+'. Aparece no site na próxima atualização (de hora em hora) ou quando você pedir "atualiza o site".'):el('p',{class:'msg'},R?'Despublicado.':'Ainda não aprovado. Revise, ajuste o texto se precisar e aprove.');
-  const aprova=async()=>{ const v={data:D,exec:ex.value.trim(),prog:pr.value.trim(),progData:D2,fotos:fpub.map(m=>m._id),aprovadoEm:Date.now(),aprovadoPor:'Maria (Sinarco)',publico:true};
+  const aprova=async()=>{ const v={data:D,demandas:demandasAceitas(D),exec:ex.value.trim(),prog:pr.value.trim(),progData:D2,fotos:fpub.map(m=>m._id),aprovadoEm:Date.now(),aprovadoPor:'Maria (Sinarco)',publico:true};
     try{ await db.collection('relatorios').doc(D).set(v); REL[D]={...v}; try{ await navigator.clipboard.writeText(linha); info.className='msg ok'; info.textContent='Aprovado. A linha com o link foi copiada: cole no grupo.'; }catch(_){ info.className='msg ok'; info.textContent='Aprovado. Copie a linha abaixo para o grupo.'; } renderRelAprov(); }catch(e){ info.className='msg err'; info.textContent='Não foi possível aprovar.'; writeErr(e); } };
   box.append(el('h2',{},'Relatório do dia para a fiscalização ',el('small',{},'revise e aprove; vai para a aba Relatórios diários do site')),
     el('div',{class:'relrow'},el('label',{},'Dia',dt),el('button',{type:'button',class:'btn',onclick:()=>{ ex.value=gerarMsg('exec',D).texto; const P=PROG[D2]; pr.value=P&&P.texto?P.texto:gerarMsg('prog',D2).texto; info.textContent='Texto refeito com os lançamentos atuais.'; }},'Refazer com os lançamentos atuais')),
     el('div',{style:'padding:0 16px;display:grid;gap:10px'},est,
       el('label',{class:'rlab'},'Serviços executados',ex),
       el('div',{class:'rlab'},'Fotos do dia: '+fpub.length+' no site'+(fotos.length>fpub.length?' · '+(fotos.length-fpub.length)+' marcadas como internas (não vão)':''),fpub.length?gallery(fpub,true):null),
+      (()=>{ const da=demandasAceitas(D); return el('div',{class:'rlab'},'Demandas extraordinárias aceitas no dia: '+da.length+(da.length?'':' (só entram as aceitas; descartadas e em avaliação não vão)'),da.length?el('ul',{},da.map(x=>el('li',{},el('b',{},x.id),' · '+(x.tipo?x.tipo+' · ':'')+x.pedido+(x.local?' – '+x.local:'')+' · '+x.destino))):null); })(),
       el('label',{class:'rlab'},'Programação de '+fmt(d(D2))+' (vem da aba Montar programação, se salva)',pr),
       can?el('div',{class:'crow'},el('button',{type:'button',class:'btn primary',onclick:aprova},R&&R.publico?'Aprovar de novo (substitui)':'Aprovar e publicar'),
         R&&R.publico?el('button',{type:'button',class:'btn',onclick:async()=>{ try{ await db.collection('relatorios').doc(D).update({publico:false}); REL[D].publico=false; renderRelAprov(); }catch(e){ writeErr(e); } }},'Despublicar'):null,info):null,
@@ -2159,13 +2174,13 @@ async function copiarMidia(de,para,evento){ const ms=MD.filter(m=>m.alvo===de); 
 function renderTriagem(){
   const box=$('triagem'); if(!box||window.__PUBLIC__) return;
   const ae=document.activeElement; if(ae&&box.contains(ae)&&/^(TEXTAREA|INPUT|SELECT)$/.test(ae.tagName)) return;
-  const lista=pen.filter(p=>p.situacao==='Em avaliação').sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  const urgN=p=>/Urgente/.test(p.urgencia)?0:1; const lista=pen.filter(p=>p.situacao==='Em avaliação').sort((a,b)=>urgN(a)-urgN(b)||(a.criadoEm||0)-(b.criadoEm||0)||(a.data||'').localeCompare(b.data||''));
   box.hidden=!lista.length; box.textContent=''; if(!lista.length) return;
   const can=canWrite!==false&&db;
-  box.appendChild(el('h2',{},'Demandas para avaliar ',el('small',{},lista.length+(lista.length===1?' demanda vinda do campo':' demandas vindas do campo')+' · escolha o destino de cada uma')));
+  box.appendChild(el('h2',{},'Demandas para avaliar ',el('small',{},lista.length+(lista.length===1?' demanda vinda do campo':' demandas vindas do campo')+' · prazo de 24h a partir da entrada · escolha o destino de cada uma')));
   for(const p of lista){ const area=el('div',{class:'tact'}); const ms=MD.filter(m=>m.alvo===p.id);
     const msg=el('span',{class:'msg'});
-    const fecha=async(upd)=>{ await db.collection('pendencias').doc(p.id).update(upd); };
+    const tps=tipoSel(p.tipo); const fecha=async(upd)=>{ upd.avaliadoEm=Date.now(); upd.avaliadoPor='Maria (Sinarco)'; const tv=tps.val(); if(tv) upd.tipo=tv; await db.collection('pendencias').doc(p.id).update(upd); };
     const hist=async(t)=>{ try{ await db.collection('pendhist').doc(newHid(p.id)).set({pendencia:p.id,data:iso(TODAY),quem:'Maria (Sinarco)',texto:t,interna:false,criadoEm:Date.now()}); }catch(e){ writeErr(e); } };
     const forms={
       frente:()=>{ const sv=el('input',{type:'text',value:p.pedido}); const lc=el('input',{type:'text',value:p.local}); const eq=el('input',{type:'text',list:'dsmEqT',placeholder:'Equipe'}); const dl=el('datalist',{id:'dsmEqT'},[...new Set(FR.map(f=>f.equipe).filter(Boolean))].sort().map(q=>el('option',{value:q}))); const dt=el('input',{type:'date',value:iso(TODAY)});
@@ -2189,10 +2204,12 @@ function renderTriagem(){
     const abre=k=>{ area.textContent=''; const parts=forms[k](); const run=parts.pop(); const b=el('button',{type:'button',class:'btn primary'},'Confirmar');
       b.addEventListener('click',async()=>{ b.disabled=true; try{ msg.className='msg ok'; msg.textContent=await run(); }catch(e){ msg.className='msg err'; msg.textContent=e&&e.message==='motivo'?'Escreva o motivo.':'Não foi possível salvar.'; writeErr(e); b.disabled=false; } });
       area.append(el('div',{class:'tgrid'},parts),el('div',{class:'crow'},b,el('button',{type:'button',class:'btn',onclick:()=>{area.textContent='';}},'Cancelar'))); };
-    const dias=p.data?Math.round((TODAY-d(p.data))/DAY):0;
-    box.appendChild(el('div',{class:'titem'+(/Urgente/.test(p.urgencia)?' urg':'')},
+    const dias=p.data?Math.round((TODAY-d(p.data))/DAY):0; const pz=prazoTxt(p);
+    box.appendChild(el('div',{class:'titem'+(/Urgente/.test(p.urgencia)?' urg':'')+(pz&&pz.atras?' late':'')},
       el('div',{class:'ttop'},el('b',{},p.id+' · '+p.pedido),el('span',{class:'pill',style:'--c:var(--accent);--bgc:transparent'},p.urgencia||'Normal')),
-      el('div',{class:'cm'},[p.local,p.deQuem?'pedido por '+p.deQuem:'',p.quem&&p.quem!==p.deQuem?'registrado por '+p.quem:'',dias<=0?'hoje':'há '+dias+' dia'+(dias>1?'s':'')].filter(Boolean).join(' · ')),
+      el('div',{class:'cm'},[p.local,p.deQuem?'pedido por '+p.deQuem:'',p.quem&&p.quem!==p.deQuem?'registrado por '+p.quem:'',p.criadoEm?'entrou '+fdh(p.criadoEm):(dias<=0?'hoje':'há '+dias+' dia'+(dias>1?'s':''))].filter(Boolean).join(' · ')),
+      pz?el('div',{class:'tprazo'+(pz.atras?' atras':'')},pz.txt):null,
+      can?el('label',{class:'ttipo'},'Tipo ',tps.sel,tps.out):(p.tipo?el('div',{class:'cm'},'Tipo: '+p.tipo):null),
       p.porque?el('div',{class:'why'},p.porque):null, ms.length?gallery(ms,true):null,
       can?el('div',{class:'crow tbt'},el('button',{type:'button',class:'btn primary',onclick:()=>abre('frente')},'Virar frente'),el('button',{type:'button',class:'btn',onclick:()=>abre('ocorr')},'Ocorrência em frente'),el('button',{type:'button',class:'btn',onclick:()=>abre('agenda')},'Agenda'),el('button',{type:'button',class:'btn',onclick:()=>abre('pend')},'Manter como pendência'),el('button',{type:'button',class:'btn mexc',onclick:()=>abre('desc')},'Descartar'),el('button',{type:'button',class:'btn',onclick:()=>showPend(p.id)},'Ver')):null,
       area,msg)); }
@@ -2278,7 +2295,7 @@ render();
     db.collection('perguntas').onSnapshot(s=>{ PG=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),ref:str(v.ref),respondida:v.respondida===true,criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0};}); renderCampo(); },()=>{});
   }
   db.collection('relatorios').onSnapshot(s=>{
-    REL={}; s.docs.forEach(x=>{ const v=x.data()||{}; if(window.__PUBLIC__&&v.publico===false) return; REL[x.id]={data:isoOk(v.data)||x.id,exec:str(v.exec),prog:str(v.prog),progData:isoOk(v.progData)||'',fotos:Array.isArray(v.fotos)?v.fotos.map(str):[],aprovadoEm:typeof v.aprovadoEm==='number'?v.aprovadoEm:0,aprovadoPor:str(v.aprovadoPor),publico:v.publico!==false}; });
+    REL={}; s.docs.forEach(x=>{ const v=x.data()||{}; if(window.__PUBLIC__&&v.publico===false) return; REL[x.id]={data:isoOk(v.data)||x.id,exec:str(v.exec),prog:str(v.prog),progData:isoOk(v.progData)||'',fotos:Array.isArray(v.fotos)?v.fotos.map(str):[],aprovadoEm:typeof v.aprovadoEm==='number'?v.aprovadoEm:0,aprovadoPor:str(v.aprovadoPor),publico:v.publico!==false,demandas:Array.isArray(v.demandas)?v.demandas.filter(o=>o&&typeof o==='object').map(o=>({id:str(o.id),tipo:str(o.tipo),pedido:str(o.pedido),local:str(o.local),destino:str(o.destino)})):[]}; });
     renderRelatorios(); renderRelAprov();
   },()=>{});
   db.collection('agenda').onSnapshot(s=>{
@@ -2286,7 +2303,7 @@ render();
     renderAgenda();
   },()=>{});
   db.collection('pendencias').onSnapshot(s=>{
-    PD=s.docs.map(x=>{const v=x.data()||{};return {id:x.id,pedido:str(v.pedido),quem:str(v.quem),deQuem:str(v.deQuem),data:isoOk(v.data),local:str(v.local),resposta:str(v.resposta),situacao:str(v.situacao)||'Aberta',obs:str(v.obs),aguardando:str(v.aguardando),porque:str(v.porque),frente:str(v.frente),origem:str(v.origem),urgencia:str(v.urgencia),geo:(v.geo&&isFinite(v.geo.lat)&&isFinite(v.geo.lng))?{lat:+v.geo.lat,lng:+v.geo.lng}:null,avaliacao:str(v.avaliacao)};}).filter(p=>!(window.__PUBLIC__&&(p.situacao==='Em avaliação'||p.situacao==='Descartada')));
+    PD=s.docs.map(x=>{const v=x.data()||{};return {id:x.id,pedido:str(v.pedido),quem:str(v.quem),deQuem:str(v.deQuem),data:isoOk(v.data),local:str(v.local),resposta:str(v.resposta),situacao:str(v.situacao)||'Aberta',obs:str(v.obs),aguardando:str(v.aguardando),porque:str(v.porque),frente:str(v.frente),origem:str(v.origem),urgencia:str(v.urgencia),geo:(v.geo&&isFinite(v.geo.lat)&&isFinite(v.geo.lng))?{lat:+v.geo.lat,lng:+v.geo.lng}:null,avaliacao:str(v.avaliacao),tipo:str(v.tipo),criadoEm:+v.criadoEm||0,avaliadoEm:+v.avaliadoEm||0};}).filter(p=>!(window.__PUBLIC__&&(p.situacao==='Em avaliação'||p.situacao==='Descartada')));
     if(!s.metadata.fromCache) loaded.pendencias=true; done(); render();
   },onErr);
 })();
