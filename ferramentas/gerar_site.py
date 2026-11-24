@@ -28,7 +28,7 @@ def limpa(v):
 
 def main(src, out):
     dados = limpa(json.load(open(src, encoding='utf-8')))
-    for c in ('frentes', 'eventos', 'pendencias', 'pendhist', 'otb', 'midia', 'agenda'):
+    for c in ('frentes', 'eventos', 'pendencias', 'pendhist', 'otb', 'midia', 'agenda', 'relatorios'):
         dados.setdefault(c, {})
     # fotos e vídeos: só as permitidas e já copiadas para a pasta fotos/ do site
     pasta = os.path.join(os.path.dirname(os.path.abspath(out)), 'fotos')
@@ -41,6 +41,8 @@ def main(src, out):
     dados['midia'] = pub
     # agenda: só os itens marcados para o site público
     dados['agenda'] = {k: v for k, v in dados['agenda'].items() if v.get('publico') is not False}
+    # relatórios diários: só os aprovados e publicados
+    dados['relatorios'] = {k: v for k, v in dados['relatorios'].items() if v.get('publico') is True}
     # notas internas das pendências não vão para o site aberto
     dados['pendhist'] = {k: v for k, v in dados['pendhist'].items() if not v.get('interna')}
     agora = datetime.datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y às %Hh%M')

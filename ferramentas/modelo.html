@@ -491,6 +491,28 @@ header.top{display:block}
 .musar input{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:4px 6px;background:var(--bg);color:var(--ink)}
 .msv{grid-column:1/-1}.msv pre{white-space:pre-wrap;margin:0;max-height:none}
 #mSalvas .relrow input[type=search]{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:min(420px,100%);background:var(--bg);color:var(--ink)}
+/* relatórios diários */
+.relv{padding-bottom:12px}
+.relhd{display:flex;gap:8px;justify-content:space-between;padding:12px 16px 0}
+.relsec{padding:4px 16px 8px}
+.relsec h3{font:600 15px var(--display);color:var(--brand);margin:10px 0 6px;border-bottom:1px solid var(--line);padding-bottom:4px}
+.relsec h3 small{font:400 12px inherit;color:var(--muted)}
+.relsec ul{margin:0;padding-left:18px;font-size:13.5px;display:grid;gap:3px}
+.relfr{margin:6px 0 10px}.relfr>b{font-size:13px}
+.relv>.msg{padding:0 16px}
+.wa{font-size:14px;line-height:1.45}
+.wa .wsp{height:6px}
+.wa .wh{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-top:6px}
+.wa .wit{margin-top:4px}
+.wa .wb{padding-left:14px;position:relative;color:var(--ink)}
+.wa .wb::before{content:'•';position:absolute;left:3px;color:var(--muted)}
+.wa b{font-weight:600}
+.rlab{display:grid;gap:4px;font-size:12px;color:var(--muted);font-weight:500}
+.rlink{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;word-break:break-all}
+.cpess{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
+.btn.chip{padding:5px 11px;border-radius:20px}
+.btn.chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+@media print{.top,.band,.relhd,.foot,footer,.tabs{display:none!important}.relv{border:0}}
 </style>
 </head>
 <body>
@@ -510,6 +532,7 @@ header.top{display:block}
     <button class="tab" role="tab" id="t-painel" aria-selected="true" aria-controls="painel" type="button">Painel</button>
     <button class="tab" role="tab" id="t-prog" aria-selected="false" aria-controls="programadas" type="button">Programadas</button>
     <button class="tab" role="tab" id="t-agenda" aria-selected="false" aria-controls="agenda" type="button">Agenda e avisos</button>
+    <button class="tab" role="tab" id="t-rel" aria-selected="false" aria-controls="relatorios" type="button">Relatórios diários</button>
     <button class="tab" role="tab" id="t-montar" aria-selected="false" aria-controls="montar" type="button">Montar programação</button>
     <button class="tab" role="tab" id="t-campo" aria-selected="false" aria-controls="campo" type="button">Campo</button>
     <button class="tab" role="tab" id="t-lanc" aria-selected="false" aria-controls="lancamentos" type="button">Lançamentos</button>
@@ -564,6 +587,10 @@ header.top{display:block}
     <div class="progwrap" id="agendabox"></div>
   </div>
 
+  <div class="view" id="relatorios" role="tabpanel" aria-labelledby="t-rel" hidden>
+    <div class="progwrap" id="relbox"></div>
+  </div>
+
   <div class="view" id="montar" role="tabpanel" aria-labelledby="t-montar" hidden>
     <div class="progwrap" id="montarbox"></div>
   </div>
@@ -577,6 +604,7 @@ header.top{display:block}
   </div>
 
   <div class="view" id="lancamentos" role="tabpanel" aria-labelledby="t-lanc" hidden>
+    <section class="card" id="relaprov"></section>
     <section class="card" id="msgs"></section>
     <section class="card" id="faltadet" hidden></section>
     <div class="forms">
@@ -1615,6 +1643,7 @@ function renderLog(){
 /* ---------- aba Campo (celular do encarregado) ---------- */
 let RC=[], PG=[];
 const DIAS_SEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+const CAMPO_PESSOAS=['Erick','Antônio','Carlos','Maria','Richard'];
 function quemSou(){ try{ return localStorage.getItem('painel425_quem')||'Erick'; }catch(_){ return 'Erick'; } }
 function newRid(){return 'R'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
 function renderCampo(){
@@ -1624,7 +1653,8 @@ function renderCampo(){
   box.textContent='';
   const can=canWrite!==false&&db;
   // 1. recado
-  const quem=el('input',{id:'rcQuem',value:quemSou(),'aria-label':'Quem está enviando'});
+  const quem=el('input',{id:'rcQuem',value:quemSou(),'aria-label':'Quem está enviando',list:'rcPessoas'});
+  const pessoas=el('div',{class:'cpess'},el('datalist',{id:'rcPessoas'},CAMPO_PESSOAS.map(n=>el('option',{value:n}))),CAMPO_PESSOAS.map(n=>el('button',{type:'button',class:'btn chip'+(quemSou()===n?' on':''),onclick:()=>{ quem.value=n; try{localStorage.setItem('painel425_quem',n);}catch(_){} pessoas.querySelectorAll('.chip').forEach(b=>b.classList.toggle('on',b.textContent===n)); }},n)));
   const tx=el('textarea',{id:'rcTexto',rows:'5',placeholder:'Fale (microfone do teclado) ou escreva do seu jeito: o que fez hoje, o que não deu e por quê, demanda que chegou por ligação, o que vai amanhã…'}); tx.value=keepTxt;
   let geo=null; const geoMsg=el('span',{class:'msg'});
   const fin=el('input',{type:'file',accept:'image/*,video/*',multiple:'',hidden:''}); let files=[];
@@ -1644,7 +1674,7 @@ function renderCampo(){
     }catch(e){ writeErr(e); msgEl.className='msg err'; msgEl.textContent='Não foi possível enviar. Tente de novo ou mande pelo WhatsApp.'; }
     bEnv.disabled=false; }},'Enviar recado');
   box.appendChild(el('section',{class:'card cbox'},el('h2',{},'Mandar recado ',el('small',{},'o Claude organiza e lança no painel')),
-    el('div',{class:'cin'},el('label',{class:'cq'},'Quem envia',quem),tx,el('div',{class:'crow'},bFoto,bGeo,fin),el('div',{},fl,' ',geoMsg),el('div',{class:'crow'},bEnv,msgEl))));
+    el('div',{class:'cin'},el('label',{class:'cq'},'Quem envia',pessoas,quem),tx,el('div',{class:'crow'},bFoto,bGeo,fin),el('div',{},fl,' ',geoMsg),el('div',{class:'crow'},bEnv,msgEl))));
   // 2. perguntas
   const abertas=PG.filter(p=>!p.respondida).sort((a,b)=>a.criadoEm-b.criadoEm);
   if(abertas.length){ const s=el('section',{class:'card cbox perg'},el('h2',{},'Perguntas para você ',el('small',{},abertas.length+(abertas.length===1?' aberta':' abertas'))));
@@ -2001,12 +2031,84 @@ async function novaFrenteAvulsa(e){
   try{ await db.collection('frentes').doc(id).set({canal:'Programação',descricao:e.titulo,entrada:iso(TODAY),equipe:e.resp||'',execucao:e.texto||'',inicio:mDia,local:e.local||e.titulo,obs:'Criada pela aba Montar programação.',orgao:'A confirmar',previsao:null,prioridade:'',recursos:'',solicitante:'',status:'Programada',termino:null}); return id; }catch(err){ writeErr(err); return null; }
 }
 
+/* ---------- relatórios diários (prestação de contas) ---------- */
+let REL={}, relAprDia=null;
+const SITE_URL='https://painel425cmd.github.io/painel-425/';
+function waHtml(t){ // texto no formato do WhatsApp -> blocos legíveis
+  const box=el('div',{class:'wa'});
+  for(const ln of str(t).split('\n')){ const l=ln.trim(); if(!l){ box.appendChild(el('div',{class:'wsp'})); continue; }
+    const p=el('div',{class:/^\*\d+\./.test(l)?'wit':/^[^\w*]*\*[^*]*\*$/.test(l)&&!/^\*\s/.test(l)&&!/Respons/.test(l)?'wh':'wl'});
+    const isBul=/^\*\s/.test(l); const txt=isBul?l.replace(/^\*\s+/,''):l;
+    txt.split(/(\*[^*]+\*)/).forEach(part=>{ if(/^\*[^*]+\*$/.test(part)) p.appendChild(el('b',{},part.slice(1,-1))); else if(part) p.appendChild(document.createTextNode(part)); });
+    if(isBul) p.classList.add('wb'); box.appendChild(p); }
+  return box;
+}
+function fotosDoDia(D){ return MD.filter(m=>m.data===D&&dem.some(x=>x.id===m.alvo)).sort((a,b)=>a.criadoEm-b.criadoEm); }
+function proxUtil(D){ const t=d(D); const n=new Date(t.getTime()+DAY*(t.getDay()===6?2:1)); return iso(n); }
+function renderRelatorios(){
+  const box=$('relbox'); if(!box) return; box.textContent='';
+  const dias=Object.keys(REL).filter(k=>REL[k].publico).sort().reverse();
+  const sel=relSel&&REL[relSel]?relSel:null;
+  if(sel){ const R=REL[sel], dt=d(sel);
+    const fotos=R.fotos.map(id=>MD.find(m=>m._id===id)).filter(Boolean);
+    const porFr={}; fotos.forEach(m=>{(porFr[m.alvo]=porFr[m.alvo]||[]).push(m);});
+    const paradas=dem.filter(x=>x.paradaAgora&&x.paradaAgora.a<=sel);
+    const perg=pen.filter(p=>!PFECH.includes(p.situacao)&&p.situacao!=='Respondida'&&MOVE_RE.test(p.aguardando));
+    const c=el('section',{class:'card relv'},
+      el('div',{class:'relhd'},el('button',{type:'button',class:'btn',onclick:()=>{ relSel=null; go('relatorios'); }},'← Todos os relatórios'),el('button',{type:'button',class:'btn',onclick:()=>window.print()},'Imprimir / salvar PDF')),
+      el('h2',{},'Relatório diário – '+fmt(dt)+'/'+dt.getFullYear()+' ',el('small',{},DSEM[dt.getDay()]+(R.aprovadoEm?' · aprovado por '+(R.aprovadoPor||'Sinarco')+' em '+fdh(R.aprovadoEm):''))),
+      el('div',{class:'relsec'},el('h3',{},'Serviços executados'),waHtml(R.exec)),
+      el('div',{class:'relsec'},el('h3',{},'Fotos do dia ',el('small',{},fotos.length+(fotos.length===1?' foto':' fotos'))),fotos.length?Object.entries(porFr).map(([fid,ms])=>{ const x=dem.find(y=>y.id===fid); return el('div',{class:'relfr'},el('b',{},x?x.local:fid),gallery(ms,false)); }):el('p',{class:'msg'},'Sem fotos publicadas neste dia.')),
+      paradas.length?el('div',{class:'relsec'},el('h3',{},'Frentes paradas'),el('ul',{},paradas.map(x=>el('li',{},el('b',{},x.local),' · desde '+fmt(d(x.paradaAgora.a))+' · '+(x.paradaAgora.motivo||'motivo a confirmar'))))):null,
+      R.prog?el('div',{class:'relsec'},el('h3',{},'Programação'+(R.progData?' de '+fmt(d(R.progData)):'')),waHtml(R.prog)):null,
+      perg.length?el('div',{class:'relsec'},el('h3',{},'Aguardando a fiscalização'),el('ul',{},perg.map(p=>el('li',{},el('b',{},p.id),' · '+p.pedido+(p.data?' · desde '+fmt(d(p.data)):''))))):null,
+      el('p',{class:'msg'},'Detalhes, histórico e fotos de cada frente estão no Painel deste site.'));
+    box.appendChild(c); return; }
+  const s=el('section',{class:'card'},el('h2',{},'Relatórios diários ',el('small',{},'executados, fotos e programação de cada dia, aprovados pela Sinarco')));
+  const l=el('div',{class:'pclist'}); if(!dias.length) l.appendChild(el('div',{class:'empty'},'Nenhum relatório publicado ainda.'));
+  dias.forEach(k=>{ const R=REL[k], dt=d(k); const nIt=(R.exec.match(/^\*\d+\./gm)||[]).length;
+    l.appendChild(el('div',{class:'pcard',tabindex:'0',role:'button',onclick:()=>{ relSel=k; go('relatorios/'+k); window.scrollTo({top:0}); },onkeydown:e=>{ if(e.key==='Enter'){ relSel=k; go('relatorios/'+k); } }},
+      el('div',{class:'pcd'},el('b',{},fmt(dt)),DSEM[dt.getDay()]),
+      el('div',{class:'pcb'},el('div',{class:'pct'},'Relatório de '+fmt(dt)+'/'+dt.getFullYear()),el('div',{class:'pcm'},nIt+(nIt===1?' serviço':' serviços')+' · '+R.fotos.length+(R.fotos.length===1?' foto':' fotos')+(R.aprovadoEm?' · aprovado em '+fdh(R.aprovadoEm):''))))); });
+  s.appendChild(l); box.appendChild(s);
+}
+function renderRelAprov(){
+  const box=$('relaprov'); if(!box||window.__PUBLIC__) return;
+  const ae=document.activeElement; if(ae&&box.contains(ae)&&/^(TEXTAREA|INPUT)$/.test(ae.tagName)) return;
+  if(!relAprDia) relAprDia=iso(TODAY);
+  const D=relAprDia, R=REL[D], D2=proxUtil(D);
+  const can=canWrite!==false&&db;
+  box.textContent='';
+  const dt=el('input',{type:'date',value:D,onchange:e=>{ if(e.target.value){ relAprDia=e.target.value; renderRelAprov(); } }});
+  const ex=el('textarea',{class:'msgout',rows:'12','aria-label':'Serviços executados'}); ex.value=R?R.exec:gerarMsg('exec',D).texto;
+  const P2=PROG[D2]; const pr=el('textarea',{class:'msgout',rows:'8','aria-label':'Programação seguinte'}); pr.value=R&&R.prog?R.prog:(P2&&P2.texto?P2.texto:gerarMsg('prog',D2).texto);
+  const fotos=fotosDoDia(D); const fpub=fotos.filter(m=>m.publico);
+  const info=el('div',{class:'msg'});
+  const link=SITE_URL+'#relatorios/'+D, linha='Relatório de '+fmt(d(D))+' publicado: '+link;
+  const est=R&&R.publico?el('p',{class:'msg ok'},'Aprovado em '+fdh(R.aprovadoEm)+'. Aparece no site na próxima atualização (de hora em hora) ou quando você pedir "atualiza o site".'):el('p',{class:'msg'},R?'Despublicado.':'Ainda não aprovado. Revise, ajuste o texto se precisar e aprove.');
+  const aprova=async()=>{ const v={data:D,exec:ex.value.trim(),prog:pr.value.trim(),progData:D2,fotos:fpub.map(m=>m._id),aprovadoEm:Date.now(),aprovadoPor:'Maria (Sinarco)',publico:true};
+    try{ await db.collection('relatorios').doc(D).set(v); REL[D]={...v}; try{ await navigator.clipboard.writeText(linha); info.className='msg ok'; info.textContent='Aprovado. A linha com o link foi copiada: cole no grupo.'; }catch(_){ info.className='msg ok'; info.textContent='Aprovado. Copie a linha abaixo para o grupo.'; } renderRelAprov(); }catch(e){ info.className='msg err'; info.textContent='Não foi possível aprovar.'; writeErr(e); } };
+  box.append(el('h2',{},'Relatório do dia para a fiscalização ',el('small',{},'revise e aprove; vai para a aba Relatórios diários do site')),
+    el('div',{class:'relrow'},el('label',{},'Dia',dt),el('button',{type:'button',class:'btn',onclick:()=>{ ex.value=gerarMsg('exec',D).texto; const P=PROG[D2]; pr.value=P&&P.texto?P.texto:gerarMsg('prog',D2).texto; info.textContent='Texto refeito com os lançamentos atuais.'; }},'Refazer com os lançamentos atuais')),
+    el('div',{style:'padding:0 16px;display:grid;gap:10px'},est,
+      el('label',{class:'rlab'},'Serviços executados',ex),
+      el('div',{class:'rlab'},'Fotos do dia: '+fpub.length+' no site'+(fotos.length>fpub.length?' · '+(fotos.length-fpub.length)+' marcadas como internas (não vão)':''),fpub.length?gallery(fpub,true):null),
+      el('label',{class:'rlab'},'Programação de '+fmt(d(D2))+' (vem da aba Montar programação, se salva)',pr),
+      can?el('div',{class:'crow'},el('button',{type:'button',class:'btn primary',onclick:aprova},R&&R.publico?'Aprovar de novo (substitui)':'Aprovar e publicar'),
+        R&&R.publico?el('button',{type:'button',class:'btn',onclick:async()=>{ try{ await db.collection('relatorios').doc(D).update({publico:false}); REL[D].publico=false; renderRelAprov(); }catch(e){ writeErr(e); } }},'Despublicar'):null,info):null,
+      R&&R.publico?el('div',{class:'rlink'},el('span',{},linha),el('button',{type:'button',class:'btn',onclick:async ev=>{ try{ await navigator.clipboard.writeText(linha); ev.target.textContent='Copiado'; }catch(_){} }},'Copiar linha para o grupo')):null,
+      el('div',{style:'height:8px'})));
+}
+
 /* ---------- abas ---------- */
-const VIEWS={painel:'t-painel',programadas:'t-prog',agenda:'t-agenda',montar:'t-montar',campo:'t-campo',lancamentos:'t-lanc',conversas:'t-conv'};
+const VIEWS={painel:'t-painel',programadas:'t-prog',agenda:'t-agenda',relatorios:'t-rel',montar:'t-montar',campo:'t-campo',lancamentos:'t-lanc',conversas:'t-conv'};
+let relSel=null;
 function go(name){
+  if(name&&name.startsWith('relatorios/')){ relSel=name.split('/')[1]||null; name='relatorios'; } else if(name==='relatorios') relSel=null;
   if(!VIEWS[name]||(window.__PUBLIC__&&(name==='lancamentos'||name==='campo'||name==='conversas'||name==='montar'))) name='painel';
   for(const [v,t] of Object.entries(VIEWS)){ $(v).hidden=v!==name; $(t).setAttribute('aria-selected',String(v===name)); }
-  const h=name==='painel'?'':'#'+name;
+  const h=name==='painel'?'':'#'+name+(name==='relatorios'&&relSel?'/'+relSel:'');
+  if(name==='relatorios') renderRelatorios();
   if(location.hash!==h) history.replaceState(null,'',h||location.pathname+location.search);
   if(name==='painel') renderGantt();
 }
@@ -2025,7 +2127,7 @@ $('limpar').addEventListener('click',()=>{state.sit=null;state.q='';state.equipe
 let rt, lastNarrow=NARROW(); addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{renderGantt(); if(NARROW()!==lastNarrow){ lastNarrow=NARROW(); renderMapa(); }},150);});
 
 function qres(){ const r=$('qres'); if(!r) return; const on=state.q||state.equipe||state.parada||state.sit; if(!on){r.textContent='';return;} const t=qTerms(); const np=pen.filter(p=>hit(t,[p.pedido,p.local,p.quem,p.id,p.porque,p.aguardando])).length; r.textContent=filtered().length+' frentes'+(state.q?' · '+np+' pendências':'')+' encontradas'; }
-function render(){derive();fillSelects();renderAlertas();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderAgenda();renderMontar();renderFalta();renderCampo();renderMsgs();renderConv();renderLog();refreshDet();qres();
+function render(){derive();fillSelects();renderAlertas();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderAgenda();renderMontar();renderRelatorios();renderRelAprov();renderFalta();renderCampo();renderMsgs();renderConv();renderLog();refreshDet();qres();
   $('asof').textContent=(loaded.frentes&&loaded.eventos)?(window.__PUBLIC__?'Atualizado em '+window.__PUBLIC__:'Atualizado ao vivo · '+fmt(TODAY)+'/'+TODAY.getFullYear()):'carregando…';}
 
 function banner(t){const b=$('banner'); if(!t){b.hidden=true;return;} b.textContent=t; b.hidden=false;}
@@ -2077,6 +2179,10 @@ render();
     db.collection('programacao').onSnapshot(s=>{ PROG={}; s.docs.forEach(x=>{ const v=x.data()||{}; PROG[x.id]={_v:true,itens:Array.isArray(v.itens)?v.itens:[],texto:str(v.texto),geradoEm:typeof v.geradoEm==='number'?v.geradoEm:0,salvoEm:typeof v.salvoEm==='number'?v.salvoEm:0}; }); renderMontar(); },()=>{});
     db.collection('perguntas').onSnapshot(s=>{ PG=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),ref:str(v.ref),respondida:v.respondida===true,criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0};}); renderCampo(); },()=>{});
   }
+  db.collection('relatorios').onSnapshot(s=>{
+    REL={}; s.docs.forEach(x=>{ const v=x.data()||{}; if(window.__PUBLIC__&&v.publico===false) return; REL[x.id]={data:isoOk(v.data)||x.id,exec:str(v.exec),prog:str(v.prog),progData:isoOk(v.progData)||'',fotos:Array.isArray(v.fotos)?v.fotos.map(str):[],aprovadoEm:typeof v.aprovadoEm==='number'?v.aprovadoEm:0,aprovadoPor:str(v.aprovadoPor),publico:v.publico!==false}; });
+    renderRelatorios(); renderRelAprov();
+  },()=>{});
   db.collection('agenda').onSnapshot(s=>{
     AG=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,data:isoOk(v.data)||'',hora:str(v.hora),tipo:str(v.tipo)||'Aviso',titulo:str(v.titulo),texto:str(v.texto),local:str(v.local),pendencia:str(v.pendencia),frente:str(v.frente),quem:str(v.quem),publico:v.publico!==false,criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0};}).filter(a=>a.titulo&&(!window.__PUBLIC__||a.publico));
     renderAgenda();
