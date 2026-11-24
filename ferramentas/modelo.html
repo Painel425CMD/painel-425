@@ -482,6 +482,15 @@ header.top{display:block}
 .medit .mbt{justify-content:flex-start}
 @media (max-width:760px){.medit{padding-left:12px}}
 .dsm h4{margin:0;font-size:13px}
+.mhlist{padding:0 16px 12px}
+.mhrow{display:grid;grid-template-columns:72px 1fr;gap:6px 14px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line)}
+.mhrow.hsel{background:color-mix(in srgb,var(--plan) 8%,var(--surface))}
+.mhtx{display:grid;gap:2px;font-size:13.5px}.mhtx span{font-size:12px;color:var(--muted)}
+.mhrow .mbt{grid-column:2;justify-content:flex-start}
+.musar{display:inline-flex;gap:4px;align-items:center}
+.musar input{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:4px 6px;background:var(--bg);color:var(--ink)}
+.msv{grid-column:1/-1}.msv pre{white-space:pre-wrap;margin:0;max-height:none}
+#mSalvas .relrow input[type=search]{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:min(420px,100%);background:var(--bg);color:var(--ink)}
 </style>
 </head>
 <body>
@@ -1861,7 +1870,10 @@ function mVirtual0(e,D){
   if(e.k==='t'){ return {id:e.id,_avulso:true,_titulo:(e.titulo+(e.local?' – '+e.local:'')).toUpperCase(),_corpo:e.texto||'',equipe:e.resp||'',sit:'pendente',eventos:[],descricao:e.titulo,local:e.local||''}; }
 }
 function mSalvar(){ if(!db||canWrite===false) return; clearTimeout(mSalvaT); const D=mDia, itens=mLista.map(e=>{ const o={k:e.k,id:e.id,on:!!e.on}; if(e.ov&&e.k!=='t') o.ov=e.ov; if(e.k==='t'){ o.titulo=e.titulo; o.texto=e.texto||''; o.local=e.local||''; o.resp=e.resp||''; } return o; });
-  const old=PROG[D]||{}; PROG[D]={_v:true,itens,texto:old.texto||'',geradoEm:old.geradoEm||0}; mSalvaT=setTimeout(()=>{ const P=PROG[D]; db.collection('programacao').doc(D).set({data:D,itens:P.itens,texto:P.texto||'',geradoEm:P.geradoEm||0,atualizadoEm:Date.now()}).catch(writeErr); },500); }
+  const old=PROG[D]||{}; PROG[D]={_v:true,itens,texto:old.texto||'',geradoEm:old.geradoEm||0,salvoEm:old.salvoEm||0}; mSalvaT=setTimeout(()=>mGravar(D),500); }
+function mGravar(D){ const P=PROG[D]; if(!P) return Promise.resolve(); return db.collection('programacao').doc(D).set({data:D,itens:P.itens,texto:P.texto||'',geradoEm:P.geradoEm||0,salvoEm:P.salvoEm||0,atualizadoEm:Date.now()}).catch(writeErr); }
+const fdh=t=>new Date(t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+let mBusca='', mVerTexto=null;
 function mSalvarTexto(D,texto){ if(!PROG[D]) mSalvar(); PROG[D].texto=texto; PROG[D].geradoEm=Date.now(); mSalvar(); }
 function renderMontar(){
   const box=$('montarbox'); if(!box||window.__PUBLIC__) return;
@@ -1874,7 +1886,7 @@ function renderMontar(){
   const dt=el('input',{type:'date',value:mDia,onchange:e=>{ if(e.target.value){ mDia=e.target.value; renderMontar(); } }});
   const out=el('textarea',{class:'msgout',rows:'16','aria-label':'Programação gerada (pode editar antes de copiar)'}); const info=el('div',{class:'msg'});
   const gerar=()=>{ const sel=mLista.filter(e=>e.on).map(e=>mVirtual(e,mDia)).filter(Boolean); out.value=gerarMsg('prog',mDia,sel).texto; if(can) mSalvarTexto(mDia,out.value); info.className='msg'; info.textContent=sel.length+' itens. Texto salvo na programação de '+fmt(d(mDia))+'. Você pode editar antes de copiar.'; };
-  if(PROG[mDia]&&PROG[mDia].texto){ out.value=PROG[mDia].texto; info.textContent='Texto salvo em '+new Date(PROG[mDia].geradoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'. Gere de novo se mudar a lista.'; }
+  if(PROG[mDia]&&PROG[mDia].texto){ out.value=PROG[mDia].texto; info.className=PROG[mDia].salvoEm?'msg ok':'msg'; info.textContent=(PROG[mDia].salvoEm?'Programação salva em '+fdh(PROG[mDia].salvoEm)+'.':'Rascunho de '+fdh(PROG[mDia].geradoEm)+' (ainda não salvo).')+' Para atualizar, gere de novo e salve: a nova substitui a anterior.'; }
   out.addEventListener('change',()=>{ if(can&&out.value.trim()) mSalvarTexto(mDia,out.value); });
   const cp=el('button',{type:'button',class:'btn',onclick:async()=>{ if(can&&out.value.trim()) mSalvarTexto(mDia,out.value); try{ await navigator.clipboard.writeText(out.value); info.className='msg ok'; info.textContent='Copiado. Cole no WhatsApp.'; }catch(_){ out.select(); info.textContent='Texto selecionado. Use copiar.'; } }},'Copiar');
   const head=el('section',{class:'card'},el('h2',{},'Montar programação ',el('small',{},'escolha o que entra e a ordem; fica salvo e a rotina das 17h47 usa esta lista')),
@@ -1903,15 +1915,42 @@ function renderMontar(){
     head.appendChild(el('form',{class:'mavulsa',onsubmit:ev=>{ ev.preventDefault(); if(!t.value.trim()) return; const it={k:'t',id:'T'+Date.now().toString(36),on:true,titulo:t.value.trim(),local:l.value.trim(),resp:r.value.trim(),texto:x.value.trim()}; const last=mLista.reduce((m,z,j)=>z.on?j:m,-1); mLista.splice(last+1,0,it); t.value=l.value=r.value=x.value=''; mSalvar(); renderMontar(); }},
       el('b',{},'Incluir tarefa avulsa'),el('div',{class:'mav'},t,l,r,x,dl,el('button',{type:'submit',class:'btn'},'Incluir'))));
   }
-  head.appendChild(el('div',{style:'padding:12px 16px 16px;display:grid;gap:8px'},el('div',{class:'crow'},el('button',{type:'button',class:'btn primary',onclick:gerar},'Gerar programação'),cp,info),out));
-  const dias=Object.keys(PROG).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse();
-  const hs=el('section',{class:'card'},el('h2',{},'Programações salvas ',el('small',{},'uma por dia; toque para abrir')));
-  const hl=el('div',{class:'pclist'}); if(!dias.length) hl.appendChild(el('div',{class:'empty'},'Nenhuma programação salva ainda.'));
-  dias.forEach(k=>{ const P=PROG[k]; const n=(P.itens||[]).filter(e=>e&&e.on).length; const dt=d(k);
-    hl.appendChild(el('div',{class:'pcard'+(k===mDia?' hsel':''),tabindex:'0',role:'button',onclick:()=>{ mDia=k; renderMontar(); window.scrollTo({top:0,behavior:'smooth'}); },onkeydown:ev=>{ if(ev.key==='Enter'){ mDia=k; renderMontar(); } }},
+  head.appendChild(el('div',{style:'padding:12px 16px 16px;display:grid;gap:8px'},el('div',{class:'crow'},el('button',{type:'button',class:'btn primary',onclick:gerar},'Gerar programação'),
+    can?el('button',{type:'button',class:'btn primary',onclick:async()=>{ if(!out.value.trim()) gerar(); mSalvar(); clearTimeout(mSalvaT); PROG[mDia].texto=out.value; if(!PROG[mDia].geradoEm) PROG[mDia].geradoEm=Date.now(); PROG[mDia].salvoEm=Date.now(); await mGravar(mDia); info.className='msg ok'; info.textContent='Programação de '+fmt(d(mDia))+' salva às '+fdh(PROG[mDia].salvoEm).split(' ')[1]+'. Se já havia uma salva, ela foi substituída.'; renderMontarLista(); }},'Salvar programação do dia'):null,
+    cp,info),out));
+  const hs=el('section',{class:'card',id:'mSalvas'}); box.appendChild(hs); renderMontarLista();
+}
+function renderMontarLista(){
+  const hs=$('mSalvas'); if(!hs) return; hs.textContent='';
+  const can=canWrite!==false&&db; const hj=iso(TODAY);
+  const busca=el('input',{type:'search',placeholder:'Buscar por data (24/11) ou texto (roçada, Jair…)',value:mBusca,'aria-label':'Buscar programações'});
+  busca.addEventListener('input',()=>{ mBusca=busca.value; clearTimeout(busca._t); busca._t=setTimeout(()=>{ renderMontarLista(); const b=$('mSalvas').querySelector('input[type=search]'); b&&(b.focus(),b.setSelectionRange(b.value.length,b.value.length)); },250); });
+  hs.append(el('h2',{},'Programações salvas ',el('small',{},'consulte, abra, copie, use como base ou exclua')),el('div',{class:'relrow'},busca));
+  const t=norm(mBusca).trim();
+  let dias=Object.keys(PROG).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)&&PROG[k]&&(PROG[k].itens||[]).length);
+  if(t) dias=dias.filter(k=>norm(fmt(d(k))+'/'+k.slice(0,4)+' '+k+' '+(PROG[k].texto||'')).includes(t));
+  const prox=dias.filter(k=>k>=hj).sort(), ant=dias.filter(k=>k<hj).sort().reverse();
+  const linha=k=>{ const P=PROG[k]; const n=(P.itens||[]).filter(e=>e&&e.on).length; const dt=d(k);
+    const estado=P.salvoEm?'salva em '+fdh(P.salvoEm):'rascunho (salvo automático)';
+    const det=el('div',{class:'msv'}); det.hidden=mVerTexto!==k;
+    if(!det.hidden) det.appendChild(el('pre',{class:'msgout'},P.texto||'Texto ainda não gerado. Abra a programação e clique em Gerar.'));
+    const alvo=el('input',{type:'date','aria-label':'Data de destino'});
+    const usar=el('span',{class:'musar'},alvo,el('button',{type:'button',class:'btn',onclick:async ev=>{ const D2=alvo.value; if(!D2){ alvo.focus(); return; } if(D2===k) return;
+        const bt=ev.currentTarget; if(PROG[D2]&&(PROG[D2].itens||[]).length&&bt.dataset.ok!==D2){ bt.dataset.ok=D2; bt.textContent='Já existe em '+fmt(d(D2))+'. Clique para substituir'; return; }
+        PROG[D2]={_v:true,itens:JSON.parse(JSON.stringify(P.itens||[])),texto:'',geradoEm:0,salvoEm:0}; await mGravar(D2); mDia=D2; renderMontar(); window.scrollTo({top:0,behavior:'smooth'}); }},'Usar como base'));
+    return el('div',{class:'mhrow'+(k===mDia?' hsel':'')},
       el('div',{class:'pcd'},el('b',{},fmt(dt)),DSEM[dt.getDay()]),
-      el('div',{class:'pcb'},el('div',{class:'pct'},'Programação de '+fmt(dt)+'/'+dt.getFullYear()),el('div',{class:'pcm'},n+(n===1?' item':' itens')+(P.texto?' · texto gerado '+new Date(P.geradoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):' · texto ainda não gerado'))))); });
-  hs.appendChild(hl); box.appendChild(hs);
+      el('div',{class:'mhtx'},el('b',{},'Programação de '+fmt(dt)+'/'+dt.getFullYear()),el('span',{},n+(n===1?' item':' itens')+' · '+estado+(P.texto?'':' · sem texto gerado'))),
+      el('div',{class:'mbt'},
+        el('button',{type:'button',class:'btn primary',onclick:()=>{ mDia=k; renderMontar(); window.scrollTo({top:0,behavior:'smooth'}); }},'Abrir e editar'),
+        el('button',{type:'button',class:'btn',onclick:()=>{ mVerTexto=mVerTexto===k?null:k; renderMontarLista(); }},mVerTexto===k?'Esconder texto':'Ver texto'),
+        P.texto?el('button',{type:'button',class:'btn',onclick:async ev=>{ try{ await navigator.clipboard.writeText(P.texto); ev.target.textContent='Copiado'; }catch(_){ mVerTexto=k; renderMontarLista(); } }},'Copiar'):null,
+        can?usar:null,
+        can?delBtn(async()=>{ await db.collection('programacao').doc(k).delete(); delete PROG[k]; if(mDia===k) renderMontar(); else renderMontarLista(); }):null),
+      det); };
+  const bloco=(tt,arr,vz)=>{ hs.appendChild(el('div',{class:'cgrp',style:'padding:0 16px'},tt+' · '+arr.length)); const l=el('div',{class:'mhlist'}); if(!arr.length) l.appendChild(el('div',{class:'empty'},vz)); arr.forEach(k=>l.appendChild(linha(k))); hs.appendChild(l); };
+  bloco('Hoje e próximas',prox,t?'Nada encontrado.':'Nenhuma programação para hoje ou os próximos dias.');
+  bloco('Anteriores',ant,t?'Nada encontrado.':'Nenhuma programação anterior salva.');
 }
 function mEditForm(e){
   const v=mVirtual(e,mDia)||{}; const base=mVirtual0(e,mDia)||{};
@@ -2035,7 +2074,7 @@ render();
   if(!window.__PUBLIC__){
     db.collection('recados').onSnapshot(s=>{ RC=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),quem:str(v.quem),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0,situacao:str(v.situacao)};}); renderCampo(); },()=>{});
     db.collection('conversas').onSnapshot(s=>{ CV=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),origem:str(v.origem),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0,situacao:str(v.situacao)};}); renderConv(); },()=>{});
-    db.collection('programacao').onSnapshot(s=>{ PROG={}; s.docs.forEach(x=>{ const v=x.data()||{}; PROG[x.id]={_v:true,itens:Array.isArray(v.itens)?v.itens:[],texto:str(v.texto),geradoEm:typeof v.geradoEm==='number'?v.geradoEm:0}; }); renderMontar(); },()=>{});
+    db.collection('programacao').onSnapshot(s=>{ PROG={}; s.docs.forEach(x=>{ const v=x.data()||{}; PROG[x.id]={_v:true,itens:Array.isArray(v.itens)?v.itens:[],texto:str(v.texto),geradoEm:typeof v.geradoEm==='number'?v.geradoEm:0,salvoEm:typeof v.salvoEm==='number'?v.salvoEm:0}; }); renderMontar(); },()=>{});
     db.collection('perguntas').onSnapshot(s=>{ PG=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),ref:str(v.ref),respondida:v.respondida===true,criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0};}); renderCampo(); },()=>{});
   }
   db.collection('agenda').onSnapshot(s=>{
