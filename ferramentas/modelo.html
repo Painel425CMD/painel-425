@@ -622,6 +622,15 @@ header.top{display:block}
 #relaprov{margin-bottom:14px}
 .robs{background:#fdecea;color:#8a1c12;border-radius:6px;padding:4px 6px;font-size:12px;line-height:1.3}
 .robs small{color:#8a1c12;opacity:.7}
+.svbox{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:10px 0;display:grid;gap:6px;background:#fff}
+.svbox h4{margin:0 0 4px;font-size:14px}
+.svit{display:flex;gap:10px;align-items:flex-start;font-size:14px;cursor:pointer}
+.svit input{width:18px;height:18px;margin-top:2px;flex:none}
+.svit span{display:grid}
+.svit .m{color:var(--muted);font-size:12.5px}
+.svit.ok b{text-decoration:line-through;color:var(--muted)}
+.citem2.acdif{background:#fff8e6}
+.acwarn{color:#8a5a00;font-weight:600}
 </style>
 </head>
 <body>
@@ -645,6 +654,7 @@ header.top{display:block}
     <span class="tabsep" id="tabsep" aria-hidden="true">Gestão</span>
     <button class="tab int" role="tab" id="t-atencao" aria-selected="false" aria-controls="atencao" type="button">Atenção</button>
     <button class="tab int" role="tab" id="t-campo" aria-selected="false" aria-controls="campo" type="button">Campo</button>
+    <button class="tab int" role="tab" id="t-acomp" aria-selected="false" aria-controls="acomp" type="button">Acompanhamento</button>
     <button class="tab int" role="tab" id="t-lanc" aria-selected="false" aria-controls="lancamentos" type="button">Lançamentos</button>
     <button class="tab int" role="tab" id="t-conv" aria-selected="false" aria-controls="conversas" type="button">Conversas</button>
   </nav>
@@ -716,6 +726,10 @@ header.top{display:block}
 
   <div class="view" id="campo" role="tabpanel" aria-labelledby="t-campo" hidden>
     <div class="campobox" id="campobox"></div>
+  </div>
+
+  <div class="view" id="acomp" role="tabpanel" aria-labelledby="t-acomp" hidden>
+    <div class="campobox" id="acompbox"></div>
   </div>
 
   <div class="view" id="conversas" role="tabpanel" aria-labelledby="t-conv" hidden>
@@ -1111,6 +1125,7 @@ function showDet(id){
   detOpen={kind:'f',id};
   head(x.id+' · '+x.status, x.local, [['Serviço',x.descricao],['O que está sendo executado',x.execucao||(window.__PUBLIC__||x.otb?'':'Falta detalhar. Use "Editar dados da frente".')],['Equipe',x.equipe||'A definir'],['Quem pediu',x.solicitante?(x.solicitante+(x.orgao&&x.orgao!=='A confirmar'&&!norm(x.solicitante).includes(norm(x.orgao).split(' ')[0])?' ('+x.orgao+')':'')):''],['Como chegou',x.canal],['Pedido em',x.entrada?fmt(d(x.entrada)):''],['Prioridade',x.prioridade],['Recursos',x.recursos],['Início',x.inicio?fmt(d(x.inicio)):''],['Previsão de término',x.previsao?fmt(d(x.previsao)):(x.sit==='concluida'?'':'Sem previsão de término (a definir)')],['Parada agora',x.paradaAgora?'Desde '+fmt(d(x.paradaAgora.a))+' ('+Math.round((TODAY-d(x.paradaAgora.a))/DAY)+' dias)'+(x.paradaAgora.motivo?' · '+x.paradaAgora.motivo:''):''],['Concluída em',x.termino?fmt(d(x.termino)):''],['Observações',x.obs]]);
   if(x.otb) dextra.appendChild(otbSection());
+  const sv=servicosSection(x); if(sv) dextra.appendChild(sv);
   const ms=mediaSection(x.id); if(ms) dextra.appendChild(ms);
   // histórico
   const h=el('div',{class:'hist'},el('h4',{},'Histórico da frente'));
@@ -2412,6 +2427,11 @@ function renderTriagem(){
 
 /* ---------- aba Atenção (só interna) ---------- */
 function rolarPara(id){ setTimeout(()=>{ const e=$(id); if(e) e.scrollIntoView({behavior:'smooth',block:'start'}); },80); }
+function ultimoSinal(x,hj){ // última data com sinal de vida: lançamento, resposta no Acompanhamento, ou a frente escrita na programação/relatório salvos
+  const ds=(x.eventos||[]).filter(e=>e.data<=hj).map(e=>e.data); if(x.inicio&&x.inicio<=hj) ds.push(x.inicio);
+  Object.values(AC).forEach(a=>{ if(a.k==='f'&&a.id===x.id&&a.data<=hj&&a.respostas&&Object.keys(a.respostas).length) ds.push(a.data); });
+  const t=norm(tituloFr(x)); if(t.length>8){ for(const [D,P] of Object.entries(PROG)) if(D<=hj&&P.salvoEm&&norm(P.texto).includes(t)) ds.push(D); for(const [D,R] of Object.entries(REL)) if(D<=hj&&R.salvoEm&&norm(R.exec).includes(t)) ds.push(D); }
+  return ds.sort().pop()||''; }
 function calcAtencao(){
   const it=[]; const hj=iso(TODAY), agora=new Date(); const hora=agora.getHours();
   const add=(nivel,grupo,titulo,sub,botoes)=>it.push({nivel,grupo,titulo,sub,botoes});
@@ -2433,7 +2453,7 @@ function calcAtencao(){
   dem.forEach(x=>{
     if(x.paradaAgora){ const n=diasDesde(x.paradaAgora.a); if(n>ALERTA_PARADA) add('alta','Frentes paradas',x.local,'Parada há '+n+' dias · '+(x.paradaAgora.motivo||'motivo a confirmar')+' · combine a retomada',[['Atualizar',()=>showDet(x.id)]]); }
     if(x.sit==='andamento'&&x.previsao&&x.previsao<hj) add('alta','Previsão vencida',x.local,'Previsão de término era '+fmt(d(x.previsao))+' · atualize a previsão ou conclua',[['Atualizar',()=>showDet(x.id)]]);
-    if(x.sit==='andamento'&&!x.otb){ const ult=(x.eventos||[]).filter(e=>e.data<=hj).map(e=>e.data).sort().pop()||x.inicio; const n=ult?diasDesde(ult):0; if(n>=3) add('media','Sem registro recente',x.local,'Em andamento, sem registro há '+n+' dias'+(x.equipe?' · '+x.equipe:''),[['Registrar',()=>showDet(x.id)]]); }
+    if(x.sit==='andamento'&&!x.otb){ const ult=ultimoSinal(x,hj); const n=ult?diasDesde(ult):0; if(n>=3) add('media','Sem registro recente',x.local,'Em andamento, sem registro há '+n+' dias'+(x.equipe?' · '+x.equipe:''),[['Segue em andamento',async ev=>{ ev.target.disabled=true; const r=await saveEvent({frente:x.id,data:hj,tipo:'Nota',motivo:'',quem:aQuem(),texto:'Segue em andamento (confirmado na aba Atenção).',previsao:''}); if(!r) ev.target.disabled=false; }],['Registrar',()=>showDet(x.id)]]); }
     if(x.sit==='pendente'&&x.inicio&&x.inicio<hj) add('media','Início atrasado',x.local,'Início previsto para '+fmt(d(x.inicio))+' · marque o início ou reprograme',[['Iniciar',()=>{ detStart=x.id; showDet(x.id); }],['Ver',()=>showDet(x.id)]]);
     if(faltaDetalhe(x)) add('info','Falta detalhar o serviço',x.local,x.descricao+(x.equipe?' · '+x.equipe:''),[['Detalhar',()=>editFrente(x)]]);
   });
@@ -2464,22 +2484,142 @@ function renderAtencao(){
       el('div',{class:'atbt'},i.botoes.map(([l,f],k)=>el('button',{type:'button',class:'btn'+(k===0?' primary':''),onclick:f},l)))))); box.appendChild(s); });
 }
 
+/* ---------- serviços da listagem dentro da frente ---------- */
+function servicosSection(x,compacto){
+  const sv=x.servicos||[]; if(!sv.length) return null;
+  const can=canWrite!==false&&db&&!window.__PUBLIC__; const feitos=sv.filter(s=>s.feito).length;
+  const s=el('div',{class:'svbox'},el('h4',{},'Serviços da listagem · '+feitos+' de '+sv.length+' feitos'));
+  const m=el('span',{class:'msg'});
+  sv.forEach((v,i)=>{ const cb=el('input',{type:'checkbox'}); cb.checked=v.feito; cb.disabled=!can;
+    cb.addEventListener('change',async()=>{ cb.disabled=true; const nv=sv.map((o,j)=>{ const r={id:o.id,local:o.local,descricao:o.descricao,nup:o.nup,feito:o.feito,feitoEm:o.feitoEm||''}; if(j===i){ r.feito=cb.checked; r.feitoEm=cb.checked?iso(TODAY):''; } return r; });
+      try{ await db.collection('frentes').doc(x.id).update({servicos:nv}); m.className='msg ok'; m.textContent='Salvo.'; }catch(e){ writeErr(e); cb.checked=!cb.checked; m.className='msg err'; m.textContent='Não salvou.'; } cb.disabled=false; });
+    s.appendChild(el('label',{class:'svit'+(v.feito?' ok':'')},cb,el('span',{},el('b',{},v.local),compacto?null:el('span',{class:'m'},[v.descricao,v.nup?'NUP '+v.nup:'',v.feito&&v.feitoEm?'feito em '+fmt(d(v.feitoEm)):''].filter(Boolean).join(' · '))))); });
+  s.appendChild(m); return s;
+}
+
+/* ---------- aba Acompanhamento (a Maria confirma o que foi feito na programação do dia) ---------- */
+let AC={}, aDia=null, aSujo=false;
+function renderAcompAuto(){ const v=$('acomp'); if(!v||v.hidden||aSujo) return; renderAcomp(); }
+const AST=[['executado','Executado'],['concluido','Concluído'],['parou','Parou'],['nao','Não executado']];
+const ASTL=Object.fromEntries(AST);
+function acId(D,e){ return (D+'_'+e.k+'_'+e.id).replace(/[\/\s]/g,'-'); }
+function aQuem(){ try{ return localStorage.getItem('painel425_quem_acomp')||'Maria'; }catch(_){ return 'Maria'; } }
+function aItensDia(D){ // itens ligados na programação do dia (salva ou padrão)
+  return (PROG[D]?mItens(D):candidatos(D)).filter(e=>e.on).map(e=>({e,v:mVirtual(e,D)})).filter(o=>o.v);
+}
+function aDoCampo(x,D){ // o que o Campo (Erick e outros) lançou na frente nesse dia
+  if(!x||!x.eventos) return [];
+  return x.eventos.filter(e=>e.data===D&&!/^acomp:/.test(e.motivo||'')&&!(e._id&&Object.values(AC).some(a=>(a.eventos||[]).includes(e._id)))).map(e=>{
+    const st=e.tipo==='Concluída'?'concluido':e.tipo==='Parada'?'parou':(e.tipo==='Execução'||e.tipo==='Início'||e.tipo==='Retomada')?'executado':(e.tipo==='Nota'&&/^não executado/i.test(e.texto))?'nao':null;
+    return st?{quem:e.quem||'Campo',status:st,motivo:e.motivo,obs:e.texto,em:e.criadoEm||0,campo:true}:null; }).filter(Boolean);
+}
+function aRespostas(D,o){ const a=AC[acId(D,o.e)]; const r=a&&a.respostas?Object.entries(a.respostas).map(([quem,v])=>({quem,...v})):[];
+  const nomes=new Set(r.map(x=>norm(x.quem))); const c=o.e.k==='f'?aDoCampo(dem.find(x=>x.id===o.e.id),D).filter(x=>!nomes.has(norm(x.quem))):[];
+  return r.concat(c).sort((a,b)=>(a.em||0)-(b.em||0)); }
+function aEfetiva(rs){ return rs.length?rs[rs.length-1]:null; }
+async function aSalvar(D,o,resp){
+  const id=acId(D,o.e); const old=AC[id]||{}; const quem=resp.quem; const x=o.e.k==='f'?dem.find(f=>f.id===o.e.id):null;
+  // apaga os lançamentos que esta mesma pessoa gerou antes por aqui (resposta mudou)
+  const meus=(old.evPor&&old.evPor[quem])||[]; for(const eid of meus){ try{ await db.collection('eventos').doc(eid).delete(); }catch(_){ } }
+  const novos=[];
+  if(x){ const evD=x.eventos.filter(e=>e.data===D&&!meus.includes(e._id)); const tem=t=>evD.some(e=>t.includes(e.tipo));
+    const base={frente:x.id,data:D,quem,previsao:''}; const add=async ev=>{ const r=await saveEvent({...base,...ev}); if(r) novos.push(r); };
+    const obs=resp.obs?resp.obs.trim():'';
+    if(resp.status==='executado'&&!tem(['Execução','Início','Retomada','Concluída'])) await add(x.sit==='parada'?{tipo:'Retomada',motivo:'',texto:obs}:x.sit==='pendente'?{tipo:'Início',motivo:'',texto:obs}:{tipo:'Execução',motivo:'',texto:obs||'Executado conforme a programação'});
+    if(resp.status==='concluido'&&!tem(['Concluída'])) await add({tipo:'Concluída',motivo:'',texto:obs});
+    if(resp.status==='parou'&&!tem(['Parada'])){
+      if(resp.continua) await add({tipo:'Nota',motivo:'',texto:'Ocorrência: parou hoje ('+(resp.motivo||'motivo a confirmar').toLowerCase()+')'+(obs?'. '+obs:'')+'. Continua no dia seguinte.'});
+      else await add({tipo:'Parada',motivo:resp.motivo||'Outro',texto:obs}); }
+    if(resp.status==='nao') await add({tipo:'Nota',motivo:'',texto:'Não executado'+(resp.motivo?' ('+resp.motivo.toLowerCase()+')':'')+(obs?'. '+obs:'')+(resp.continua?'. Fica para o dia seguinte.':'.')});
+  }
+  const respostas={...(old.respostas||{})}; respostas[quem]={status:resp.status,continua:resp.continua===true,motivo:resp.motivo||'',obs:resp.obs||'',em:Date.now()};
+  const evPor={...(old.evPor||{})}; evPor[quem]=novos;
+  const doc={data:D,k:o.e.k,id:o.e.id,titulo:o.v._titulo||tituloFr(o.v),respostas,evPor,eventos:Object.values(evPor).flat(),atualizadoEm:Date.now()};
+  await db.collection('acomp').doc(id).set(doc); AC[id]=doc;
+  await aRascunho(D,false);
+}
+function aSugestao(D){ // programação do dia seguinte a partir das respostas + demandas programadas
+  const D2=proxUtil(D); const base=candidatos(D2); const key=e=>e.k+':'+e.id; const pos=new Map(base.map((e,i)=>[key(e),i]));
+  const out=base.map(e=>({...e}));
+  for(const o of aItensDia(D)){ const r=aEfetiva(aRespostas(D,o)); if(!r) continue; const k=key(o.e);
+    const fica=r.status==='concluido'?false:r.status==='executado'?r.continua!==false:r.continua===true;
+    if(pos.has(k)) out[pos.get(k)].on=fica;
+    else if(fica){ const n={k:o.e.k,id:o.e.id,on:true}; if(o.e.ov) n.ov=o.e.ov; if(o.e.k==='t'){ Object.assign(n,{titulo:o.e.titulo,texto:o.e.texto||'',local:o.e.local||'',resp:o.e.resp||''}); } out.push(n); } }
+  return {D2,itens:out};
+}
+async function aRascunho(D,forcar){
+  const {D2,itens}=aSugestao(D); const P=PROG[D2];
+  if(P&&!forcar&&(P.salvoEm||P.origem!=='acomp')) return {D2,feito:false};
+  const sel=itens.filter(e=>e.on).map(e=>mVirtual(e,D2)).filter(Boolean); const texto=gerarMsg('prog',D2,sel).texto;
+  const doc={data:D2,itens:itens.map(e=>{ const o={k:e.k,id:e.id,on:!!e.on}; if(e.ov) o.ov=e.ov; if(e.k==='t'){ o.titulo=e.titulo; o.texto=e.texto||''; o.local=e.local||''; o.resp=e.resp||''; } return o; }),texto,geradoEm:Date.now(),salvoEm:0,atualizadoEm:Date.now(),origem:'acomp'};
+  await db.collection('programacao').doc(D2).set(doc); PROG[D2]={_v:true,...doc};
+  return {D2,feito:true};
+}
+function renderAcomp(){
+  const box=$('acompbox'); if(!box||window.__PUBLIC__) return;
+  const ae=document.activeElement; if(ae&&box.contains(ae)&&/^(TEXTAREA|INPUT|SELECT)$/.test(ae.tagName)) return;
+  if(!aDia) aDia=iso(TODAY);
+  box.textContent=''; const can=canWrite!==false&&db; const D=aDia; const D2=proxUtil(D);
+  const dt=el('input',{type:'date',value:D,onchange:e=>{ if(e.target.value){ aDia=e.target.value; aSujo=false; renderAcomp(); } }});
+  const pessoas=el('div',{class:'cpess'},CAMPO_PESSOAS.map(n=>el('button',{type:'button',class:'btn chip'+(aQuem()===n?' on':''),onclick:()=>{ try{localStorage.setItem('painel425_quem_acomp',n);}catch(_){} aSujo=false; renderAcomp(); }},n)));
+  const itens=aItensDia(D); const resp=itens.map(o=>({o,rs:aRespostas(D,o)}));
+  const nOk=resp.filter(r=>r.rs.length).length;
+  box.appendChild(el('section',{class:'card cbox'},el('h2',{},'Acompanhamento da programação ',el('small',{},nOk+' de '+itens.length+' respondidos')),
+    el('div',{class:'cin'},el('label',{class:'cq'},'Dia',dt),el('label',{class:'cq'},'Quem responde',pessoas),
+      el('p',{class:'msg'},PROG[D]&&PROG[D].salvoEm?'Itens da programação salva de '+fmt(d(D))+'.':'Não há programação salva para '+fmt(d(D))+'. Mostrando a ordem padrão.'))));
+  const lst=el('section',{class:'card cbox'}); const ul=el('div',{class:'clist'});
+  resp.forEach(({o,rs})=>{
+    const ef=aEfetiva(rs); const minha=rs.filter(r=>norm(r.quem)===norm(aQuem())).pop();
+    const sts=new Set(rs.map(r=>r.status)); const difs=sts.size>1&&!([...sts].every(t=>t==='executado'||t==='concluido'));
+    const area=el('div',{class:'cact'});
+    let st=(minha||ef||{}).status||'', cont=(minha||ef||{}).continua, mot=(minha||ef||{}).motivo||'';
+    const obs=el('textarea',{rows:'2',placeholder:'Observação (opcional): trecho, quantidade, detalhe'}); obs.value=(minha&&minha.obs)||'';
+    const m=el('span',{class:'msg'});
+    const desenha=()=>{ area.textContent='';
+      area.appendChild(el('div',{class:'crow'},AST.map(([k,l])=>el('button',{type:'button',class:'btn chip'+(st===k?' on':''),disabled:!can,onclick:()=>{ aSujo=true; st=k; if(k==='executado'&&cont==null) cont=true; desenha(); }},l))));
+      if(st==='parou'||st==='nao'){ const s=el('select',{},el('option',{value:''},'Motivo…'),MOTIVOS.map(x=>el('option',{selected:x===mot},x))); s.addEventListener('change',()=>{ mot=s.value; }); area.appendChild(el('label',{class:'cq'},st==='parou'?'Por que parou? (vira ocorrência na frente)':'Por que não foi executado?',s)); }
+      if(st&&st!=='concluido') area.appendChild(el('div',{class:'crow'},el('span',{class:'cm'},'Continua amanhã ('+fmt(d(D2))+')?'),el('button',{type:'button',class:'btn chip'+(cont===true?' on':''),onclick:()=>{ cont=true; desenha(); }},'Sim'),el('button',{type:'button',class:'btn chip'+(cont===false?' on':''),onclick:()=>{ cont=false; desenha(); }},'Não')));
+      if(st) area.appendChild(obs);
+      if(st&&can) area.appendChild(el('div',{class:'crow'},el('button',{type:'button',class:'btn primary',onclick:async ev=>{
+        if((st==='parou'||st==='nao')&&!mot){ m.className='msg err'; m.textContent='Escolha o motivo.'; return; }
+        if(st!=='concluido'&&cont==null){ m.className='msg err'; m.textContent='Diga se continua amanhã.'; return; }
+        ev.target.disabled=true; m.className='msg'; m.textContent='Salvando…';
+        try{ await aSalvar(D,o,{quem:aQuem(),status:st,continua:st==='concluido'?false:cont,motivo:mot,obs:obs.value}); m.className='msg ok'; m.textContent='Salvo.'; aSujo=false; setTimeout(renderAcomp,300); }
+        catch(e){ writeErr(e); m.className='msg err'; m.textContent='Não salvou. Tente de novo.'; ev.target.disabled=false; } }},minha?'Atualizar resposta':'Salvar resposta'),m)); };
+    desenha();
+    const x=o.e.k==='f'?dem.find(f=>f.id===o.e.id):null;
+    const quemDisse=rs.map(r=>r.quem+': '+ASTL[r.status]+(r.status!=='concluido'&&r.continua!=null&&!r.campo?(r.continua?' (continua)':' (não continua)'):'')+(r.motivo?' · '+r.motivo:'')+(r.campo?' (pelo Campo)':'')).join(' · ');
+    ul.appendChild(el('div',{class:'citem2'+(difs?' acdif':'')},el('div',{class:'ct'},el('b',{},(o.v._titulo||tituloFr(o.v))),el('span',{class:'cm'},(o.v.equipe||'Responsável a definir')+(o.e.k!=='f'?' · avulsa':'')),
+      rs.length?el('span',{class:'cs'+(difs?' acwarn':'')},(difs?'⚠ Respostas diferentes. Vale a última: ':'')+quemDisse):el('span',{class:'cm'},'Sem resposta ainda')),
+      x?servicosSection(x,true):null, area)); });
+  if(!itens.length) ul.appendChild(el('div',{class:'empty'},'Nada programado para '+fmt(d(D))+'.'));
+  lst.appendChild(ul); box.appendChild(lst);
+  // rascunho do dia seguinte
+  const P2=PROG[D2]; const im=el('span',{class:'msg'});
+  const sit=P2?(P2.salvoEm?'A programação de '+fmt(d(D2))+' já foi salva em '+fdh(P2.salvoEm)+'. Suas respostas não mexem nela; use "Refazer rascunho" se quiser recomeçar.':P2.origem==='acomp'?'Rascunho de '+fmt(d(D2))+' montado em '+fdh(P2.geradoEm)+' a partir das respostas. Ajuste e salve em Montar programação.':'Há uma programação de '+fmt(d(D2))+' em edição. Suas respostas não mexem nela; use "Refazer rascunho" para recomeçar.'):'O rascunho de '+fmt(d(D2))+' é montado sozinho a cada resposta.';
+  box.appendChild(el('section',{class:'card cbox'},el('h2',{},'Programação de '+fmt(d(D2))+' ',el('small',{},DIAS_SEM[d(D2).getDay()])),el('div',{class:'cin'},el('p',{class:'msg'},sit),
+    el('div',{class:'crow'},can?el('button',{type:'button',class:'btn',onclick:async ev=>{ if(P2&&(P2.salvoEm||P2.origem!=='acomp')&&!confirmar(ev.target)) return; ev.target.disabled=true; try{ await aRascunho(D,true); im.className='msg ok'; im.textContent='Rascunho refeito.'; setTimeout(renderAcomp,300); }catch(e){ writeErr(e); im.className='msg err'; im.textContent='Não deu certo.'; ev.target.disabled=false; } }},P2?'Refazer rascunho':'Montar rascunho agora'):null,
+      el('button',{type:'button',class:'btn primary',onclick:()=>{ mDia=D2; go('montar'); renderMontar(); mIrMontar(); }},'Abrir em Montar programação'),im))));
+}
+function confirmar(b){ if(b.dataset.ok==='1') return true; b.dataset.ok='1'; b.textContent='Toque de novo para substituir'; setTimeout(()=>{ b.dataset.ok=''; b.textContent='Refazer rascunho'; },5000); return false; }
+
 /* ---------- abas ---------- */
-const VIEWS={atencao:'t-atencao',painel:'t-painel',programadas:'t-prog',agenda:'t-agenda',relatorios:'t-rel',montar:'t-prog',campo:'t-campo',lancamentos:'t-lanc',conversas:'t-conv'};
+const VIEWS={atencao:'t-atencao',painel:'t-painel',programadas:'t-prog',agenda:'t-agenda',relatorios:'t-rel',montar:'t-prog',campo:'t-campo',acomp:'t-acomp',lancamentos:'t-lanc',conversas:'t-conv'};
 let relSel=null;
 function go(name){
   if(name&&name.startsWith('relatorios/')){ relSel=name.split('/')[1]||null; name='relatorios'; } else if(name==='relatorios') relSel=null;
-  if(!VIEWS[name]||(window.__PUBLIC__&&(name==='atencao'||name==='lancamentos'||name==='campo'||name==='conversas'||name==='montar'))) name='painel';
+  if(!VIEWS[name]||(window.__PUBLIC__&&(name==='atencao'||name==='lancamentos'||name==='campo'||name==='acomp'||name==='conversas'||name==='montar'))) name='painel';
   for(const v of Object.keys(VIEWS)) $(v).hidden=v!==name; for(const t of new Set(Object.values(VIEWS))) $(t).setAttribute('aria-selected',String(t===VIEWS[name])); document.querySelectorAll('.psw button').forEach(b=>{ b.classList.toggle('primary',b.dataset.v===name); b.setAttribute('aria-pressed',String(b.dataset.v===name)); });
   const h=name==='painel'?'':'#'+name+(name==='relatorios'&&relSel?'/'+relSel:'');
   if(name==='relatorios'){ renderRelatorios(); renderRelAprov(); }
+  if(name==='acomp'){ aSujo=false; renderAcomp(); }
   if(location.hash!==h) history.replaceState(null,'',h||location.pathname+location.search);
   if(name==='painel') renderGantt();
 }
 for(const [v,t] of Object.entries(VIEWS)) if(v!=='montar') $(t).addEventListener('click',()=>go(v));
 document.querySelectorAll('.psw button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.v)));
 addEventListener('hashchange',()=>go(location.hash.slice(1)||'painel'));
-if(window.__PUBLIC__){ $('tabsep').hidden=true; $('t-atencao').hidden=true; document.querySelectorAll('.psw').forEach(x=>x.hidden=true); $('t-lanc').hidden=true; $('t-campo').hidden=true; $('t-conv').hidden=true; document.querySelector('.foot').textContent='Toque em uma frente para ver o histórico completo dela. Versão pública só de leitura, atualizada automaticamente.'; }
+if(window.__PUBLIC__){ $('tabsep').hidden=true; $('t-atencao').hidden=true; document.querySelectorAll('.psw').forEach(x=>x.hidden=true); $('t-lanc').hidden=true; $('t-campo').hidden=true; $('t-acomp').hidden=true; $('t-conv').hidden=true; document.querySelector('.foot').textContent='Toque em uma frente para ver o histórico completo dela. Versão pública só de leitura, atualizada automaticamente.'; }
 if(location.hash.length>1) go(location.hash.slice(1));
 
 /* ---------- filtros ---------- */
@@ -2492,7 +2632,7 @@ $('limpar').addEventListener('click',()=>{state.sit=null;state.q='';state.equipe
 let rt, lastNarrow=NARROW(); addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{renderGantt(); if(NARROW()!==lastNarrow){ lastNarrow=NARROW(); renderMapa(); }},150);});
 
 function qres(){ const r=$('qres'); if(!r) return; const on=state.q||state.equipe||state.parada||state.sit; if(!on){r.textContent='';return;} const t=qTerms(); const np=pen.filter(p=>hit(t,[p.pedido,p.local,p.quem,p.id,p.porque,p.aguardando])).length; r.textContent=filtered().length+' frentes'+(state.q?' · '+np+' pendências':'')+' encontradas'; }
-function render(){derive();fillSelects();renderTriagem();renderAlertas();renderAtencao();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderProgSalvas();renderAgenda();renderMontar();renderRelatorios();renderRelAprov();renderFalta();renderCampo();renderMsgs();renderConv();renderLog();refreshDet();qres();
+function render(){derive();renderAcompAuto();fillSelects();renderTriagem();renderAlertas();renderAtencao();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderProgSalvas();renderAgenda();renderMontar();renderRelatorios();renderRelAprov();renderFalta();renderCampo();renderMsgs();renderConv();renderLog();refreshDet();qres();
   $('asof').textContent=(loaded.frentes&&loaded.eventos)?(window.__PUBLIC__?'Atualizado em '+window.__PUBLIC__:'Atualizado ao vivo · '+fmt(TODAY)+'/'+TODAY.getFullYear()):'carregando…';}
 
 function banner(t){const b=$('banner'); if(!t){b.hidden=true;return;} b.textContent=t; b.hidden=false;}
@@ -2519,7 +2659,7 @@ render();
   const done=()=>{ if(loaded.frentes&&loaded.eventos&&loaded.pendencias){ clearTimeout(timer); if(canWrite!==false||window.__PUBLIC__) banner(''); } };
   const onErr=()=>{ clearTimeout(timer); banner('A conexão com os dados caiu. Recarregue a página para continuar.'); };
   db.collection('frentes').onSnapshot(s=>{
-    FR=s.docs.map(x=>{const v=x.data()||{};return {id:x.id,local:str(v.local)||'(sem local)',descricao:str(v.descricao),execucao:str(v.execucao),solicitante:str(v.solicitante),orgao:str(v.orgao),entrada:isoOk(v.entrada),canal:str(v.canal),equipe:str(v.equipe),prioridade:str(v.prioridade),status:str(v.status)||'Nova',inicio:isoOk(v.inicio),previsao:isoOk(v.previsao),termino:isoOk(v.termino),recursos:str(v.recursos),obs:str(v.obs),otb:v.otb===true,geo:(v.geo&&isFinite(v.geo.lat)&&isFinite(v.geo.lng))?{lat:+v.geo.lat,lng:+v.geo.lng,aprox:v.geo.aprox===true}:null};});
+    FR=s.docs.map(x=>{const v=x.data()||{};return {id:x.id,local:str(v.local)||'(sem local)',descricao:str(v.descricao),execucao:str(v.execucao),solicitante:str(v.solicitante),orgao:str(v.orgao),entrada:isoOk(v.entrada),canal:str(v.canal),equipe:str(v.equipe),prioridade:str(v.prioridade),status:str(v.status)||'Nova',inicio:isoOk(v.inicio),previsao:isoOk(v.previsao),termino:isoOk(v.termino),recursos:str(v.recursos),obs:str(v.obs),otb:v.otb===true,servicos:Array.isArray(v.servicos)?v.servicos.filter(q=>q&&q.local).map(q=>({id:str(q.id),local:str(q.local),descricao:str(q.descricao),nup:str(q.nup),feito:q.feito===true,feitoEm:isoOk(q.feitoEm)||''})):[],geo:(v.geo&&isFinite(v.geo.lat)&&isFinite(v.geo.lng))?{lat:+v.geo.lat,lng:+v.geo.lng,aprox:v.geo.aprox===true}:null};});
     if(!s.metadata.fromCache) loaded.frentes=true; done(); render();
   },onErr);
   db.collection('eventos').onSnapshot(s=>{
@@ -2539,10 +2679,11 @@ render();
     render();
   },()=>{});
   if(!window.__PUBLIC__) db.collection('pedidos').onSnapshot(s=>{ PED=s.docs.map(x=>({_id:x.id,...(x.data()||{})})); renderRelAprov(); },()=>{});
-  db.collection('programacao').onSnapshot(s=>{ PROG={}; s.docs.forEach(x=>{ const v=x.data()||{}; PROG[x.id]={_v:true,itens:Array.isArray(v.itens)?v.itens:[],texto:str(v.texto),geradoEm:typeof v.geradoEm==='number'?v.geradoEm:0,salvoEm:typeof v.salvoEm==='number'?v.salvoEm:0}; }); renderMontar(); renderProgSalvas(); renderAtencao(); },()=>{});
+  db.collection('programacao').onSnapshot(s=>{ PROG={}; s.docs.forEach(x=>{ const v=x.data()||{}; PROG[x.id]={_v:true,itens:Array.isArray(v.itens)?v.itens:[],texto:str(v.texto),geradoEm:typeof v.geradoEm==='number'?v.geradoEm:0,salvoEm:typeof v.salvoEm==='number'?v.salvoEm:0,origem:str(v.origem)}; }); renderMontar(); renderProgSalvas(); renderAtencao(); renderAcompAuto(); },()=>{});
   if(!window.__PUBLIC__){
     db.collection('recados').onSnapshot(s=>{ RC=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),quem:str(v.quem),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0,situacao:str(v.situacao)};}); renderCampo(); renderAtencao(); },()=>{});
     db.collection('conversas').onSnapshot(s=>{ CV=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),origem:str(v.origem),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0,situacao:str(v.situacao)};}); renderConv(); renderAtencao(); },()=>{});
+    db.collection('acomp').onSnapshot(s=>{ AC={}; s.docs.forEach(x=>{ AC[x.id]=x.data()||{}; }); renderAtencao(); renderAcompAuto(); },()=>{});
     db.collection('perguntas').onSnapshot(s=>{ PG=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),ref:str(v.ref),respondida:v.respondida===true,criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0};}); renderCampo(); },()=>{});
   }
   db.collection('relatorios').onSnapshot(s=>{
