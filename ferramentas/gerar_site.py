@@ -49,6 +49,14 @@ def main(src, out):
     dados['programacao'] = {k: {'texto': v.get('texto', ''), 'salvoEm': v.get('salvoEm')} for k, v in dados['programacao'].items() if v.get('salvoEm') and v.get('texto')}
     # relatórios diários: só os aprovados e publicados
     dados['relatorios'] = {k: v for k, v in dados['relatorios'].items() if v.get('publico') is True}
+    # reprogramações: no site só a nova data, sem o motivo
+    for v in dados['eventos'].values():
+        v.pop('motivoInt', None)
+        if v.get('tipo') in ('Reprogramada', 'Previsão'):
+            v['motivo'] = ''
+    # coleções internas nunca vão para o site
+    for c in ('acomp', 'extras', 'pedidos', 'recados', 'conversas', 'perguntas'):
+        dados.pop(c, None)
     # notas internas das pendências não vão para o site aberto
     dados['pendhist'] = {k: v for k, v in dados['pendhist'].items() if not v.get('interna')}
     agora = datetime.datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y às %Hh%M')
