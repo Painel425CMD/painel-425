@@ -654,6 +654,15 @@ header.top{display:block}
 .calt{display:inline-flex;gap:4px;align-items:center;margin-right:10px}
 .calleg{padding:8px 16px 0}
 .calsel{padding:10px 16px 4px;font-weight:600}
+.cvdet{padding:0}
+.cvdet>summary{padding:14px 16px;cursor:pointer;list-style:revert}
+.cvdet>summary small{color:var(--muted);font-weight:400;margin-left:6px}
+.rgrupos{display:grid;gap:8px;margin:8px 0}
+.rgrp{border:1px solid var(--line);border-radius:8px;background:#fff}
+.rgrp>summary{padding:10px 12px;cursor:pointer;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rgrp>summary .btn{margin-left:auto;padding:4px 10px;font-size:13px}
+.rgrp>.rfotos{padding:0 12px 12px}
+.rgobs{color:#8a1c1c;font-size:13px;font-weight:600}
 </style>
 </head>
 <body>
@@ -676,10 +685,9 @@ header.top{display:block}
     <button class="tab" role="tab" id="t-rel" aria-selected="false" aria-controls="relatorios" type="button">Relatórios</button>
     <span class="tabsep" id="tabsep" aria-hidden="true">Gestão</span>
     <button class="tab int" role="tab" id="t-atencao" aria-selected="false" aria-controls="atencao" type="button">Atenção</button>
-    <button class="tab int" role="tab" id="t-campo" aria-selected="false" aria-controls="campo" type="button">Campo</button>
     <button class="tab int" role="tab" id="t-acomp" aria-selected="false" aria-controls="acomp" type="button">Acompanhamento</button>
-    <button class="tab int" role="tab" id="t-lanc" aria-selected="false" aria-controls="lancamentos" type="button">Lançamentos</button>
-    <button class="tab int" role="tab" id="t-conv" aria-selected="false" aria-controls="conversas" type="button">Conversas</button>
+    <button class="tab int" role="tab" id="t-campo" aria-selected="false" aria-controls="campo" type="button">Campo</button>
+    <button class="tab int" role="tab" id="t-lanc" aria-selected="false" aria-controls="lancamentos" type="button">Lançar</button>
   </nav>
 </div>
 <div class="wrap">
@@ -755,11 +763,9 @@ header.top{display:block}
     <div class="campobox" id="acompbox"></div>
   </div>
 
-  <div class="view" id="conversas" role="tabpanel" aria-labelledby="t-conv" hidden>
-    <div class="campobox" id="convbox"></div>
-  </div>
 
   <div class="view" id="lancamentos" role="tabpanel" aria-labelledby="t-lanc" hidden>
+    <details class="card cvdet" id="cvdet"><summary><b>Colar conversa do WhatsApp</b> <small>grupo RDO, grupo Move/Sinarco, ligação… eu leio e lanço no painel em até 1 hora</small></summary><div class="campobox" id="convbox"></div></details>
     <section class="card" id="msgs"></section>
     <section class="card" id="faltadet" hidden></section>
     <div class="forms">
@@ -2004,7 +2010,7 @@ function renderMsgs(){
 }
 
 /* ---------- aba Conversas (colar WhatsApp: grupo RDO etc.) ---------- */
-let CV=[];
+let CV=[], CV_MSG='';
 function newCid(){return 'C'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
 function renderConv(){
   const box=$('convbox'); if(!box||window.__PUBLIC__) return;
@@ -2015,20 +2021,21 @@ function renderConv(){
   const tx=el('textarea',{id:'cvTexto',rows:'10',placeholder:'Cole aqui o trecho da conversa (no WhatsApp: toque e segure nas mensagens, selecione, Copiar). Pode colar vários dias de uma vez.'}); tx.value=keep;
   const fin=el('input',{type:'file',accept:'image/*,video/*',multiple:'',hidden:''}); let files=[]; const fl=el('span',{class:'msg'});
   fin.addEventListener('change',()=>{files=[...fin.files]; fl.textContent=files.length?files.length+' arquivo(s) anexado(s)':'';});
-  const m=el('span',{class:'msg',role:'status'});
+  const m=el('span',{class:CV_MSG?'msg ok':'msg',role:'status'},CV_MSG);
   const b=el('button',{type:'button',class:'btn primary',onclick:async()=>{ const t=tx.value.trim(); if(!t&&!files.length){m.className='msg err';m.textContent='Cole a conversa ou anexe fotos.';return;}
     b.disabled=true; m.className='msg'; m.textContent='Salvando…';
     try{ const id=newCid(); await db.collection('conversas').doc(id).set({texto:t.slice(0,200000),origem:orig.value,data:data.value||iso(TODAY),criadoEm:Date.now(),situacao:'novo'});
       if(files.length) await uploadMedia(files,id,'',(x,c)=>{m.className='msg'+(c?' '+c:'');m.textContent=x;});
-      tx.value=''; tx.blur(); files=[]; fl.textContent=''; m.className='msg ok'; m.textContent='Salvo. Eu leio, organizo e lanço no painel na próxima rotina (17h47 ou 6h25). Se for urgente, me avise no chat.'; setTimeout(renderConv,50);
+      try{ await pedir('conversa',data.value||iso(TODAY)); }catch(_){ }
+      tx.value=''; tx.blur(); files=[]; fl.textContent=''; m.className='msg ok'; m.textContent='Salvo. Eu leio, organizo e lanço no painel em até 1 hora (das 6h às 22h). Se for urgente, me avise no chat do Claude.'; CV_MSG=m.textContent; setTimeout(()=>{ CV_MSG=''; },30000); setTimeout(renderConv,50);
     }catch(e){ writeErr(e); m.className='msg err'; m.textContent='Não foi possível salvar.'; }
     b.disabled=false; }},'Salvar conversa');
-  box.appendChild(el('section',{class:'card cbox'},el('h2',{},'Colar conversa ',el('small',{},'grupo RDO, grupo Move/Sinarco ou outra conversa')),
+  box.appendChild(el('section',{class:'cbox'},
     el('div',{class:'cin'},el('div',{class:'crow'},el('label',{class:'cq'},'De onde veio',orig),el('label',{class:'cq'},'Data',data)),tx,
       el('div',{class:'crow'},el('button',{type:'button',class:'btn',onclick:()=>fin.click()},'Anexar fotos ou vídeos'),fin,fl),el('div',{class:'crow'},b,m),
       el('p',{class:'hint',style:'margin:0;font-size:12.5px;color:var(--muted)'},'Para muitas fotos ou vários dias, é melhor exportar a conversa no WhatsApp (Mais > Exportar conversa > Anexar mídia) e mandar o arquivo no chat com o Claude.'))));
   const ult=CV.slice().sort((a,b)=>b.criadoEm-a.criadoEm).slice(0,15);
-  if(ult.length){ const l=el('div',{class:'clist'}); ult.forEach(c=>l.appendChild(el('div',{class:'citem2'},el('div',{class:'ct'},el('span',{class:'cm'},fmt(d(c.data))+' · '+c.origem+' · '+(c.situacao==='lancado'?'lançado no painel':'aguardando a próxima rotina')+' · '+(c.texto.split('\n').length)+' linhas'),el('span',{class:'cs'},corta(c.texto,160)),gallery(mediaOf(c._id),true)))));
+  if(ult.length){ const l=el('div',{class:'clist'}); ult.forEach(c=>l.appendChild(el('div',{class:'citem2'},el('div',{class:'ct'},el('span',{class:'cm'},fmt(d(c.data))+' · '+c.origem+' · '+(c.situacao==='lancado'?'lançado no painel':'aguardando (até 1 hora)')+' · '+(c.texto.split('\n').length)+' linhas'),el('span',{class:'cs'},corta(c.texto,160)),gallery(mediaOf(c._id),true)))));
     box.appendChild(el('section',{class:'card cbox'},el('h2',{},'Conversas salvas ',el('small',{},CV.length+' no total')),l)); }
 }
 
@@ -2342,6 +2349,7 @@ async function uploadRelFotos(itens,D,status){
   status(errs.length?(ids.length?ids.length+' salva(s). ':'')+errs.join('; '):(ids.length===1?'1 foto salva.':ids.length+' fotos salvas.'),errs.length?'err':'ok');
   return ids;
 }
+let relGrpAberto={};
 function renderRelAprov(){
   const box=$('relaprov'); if(!box||window.__PUBLIC__) return; box.hidden=!!relSel;
   const ae=document.activeElement; if(ae&&box.contains(ae)&&/^(TEXTAREA|INPUT|SELECT)$/.test(ae.tagName)) return;
@@ -2374,7 +2382,7 @@ function renderRelAprov(){
   // fotos existentes
   const frOpts=()=>[el('option',{value:''},'Geral do dia'),...dem.filter(x=>x.sit!=='concluida'||x.termino===D).sort((a,b)=>a.local.localeCompare(b.local)).map(x=>el('option',{value:x.id},corta(x.local,40)))];
   const nomeAlvo=a=>{ const x=dem.find(y=>y.id===a); return x?x.local:'Geral do dia'; };
-  const lista=el('div',{class:'rfotos'},fotos.map(m=>{ const cb=el('input',{type:'checkbox'}); cb.checked=sel.has(m._id); cb.disabled=!editando; cb.addEventListener('change',()=>{ cb.checked?sel.add(m._id):sel.delete(m._id); });
+  const umaFoto=m=>{ const cb=el('input',{type:'checkbox'}); cb.checked=sel.has(m._id); cb.disabled=!editando; cb.addEventListener('change',()=>{ cb.checked?sel.add(m._id):sel.delete(m._id); });
     const lg=el('input',{type:'text',value:m.legenda||'',placeholder:'Legenda',maxlength:'200'}); lg.readOnly=!editando||!can;
     lg.addEventListener('change',async()=>{ try{ await db.collection('midia').doc(m._id).update({legenda:lg.value.trim()}); m.legenda=lg.value.trim(); }catch(e){ writeErr(e); } });
     return el('div',{class:'rfoto'},el('button',{type:'button',class:'rth',onclick:()=>lightbox(m)},m.tipo==='video'?el('video',{src:mediaSrc(m)+'#t=0.5',preload:'metadata',muted:''}):el('img',{src:mediaSrc(m),loading:'lazy',alt:m.legenda||'Foto'})),
@@ -2385,7 +2393,14 @@ function renderRelAprov(){
             if(R&&(R.fotos||[]).includes(m._id)){ const nf=R.fotos.filter(f=>f!==m._id); await db.collection('relatorios').doc(D).update({fotos:nf}); R.fotos=nf; }
             if(R&&R.publico){ try{ await pedir('site',D); }catch(_){ } }
             toast('Foto removida do relatório'+(R&&R.publico?' e do site (o site atualiza em até 1 hora)':'')+'.',async()=>{ await db.collection('midia').doc(m._id).update({removido:false}); m.removido=false; renderRelAprov(); });
-            renderRelAprov(); }catch(e){ writeErr(e); b.disabled=false; } }},'🗑 remover'):null)); }));
+            renderRelAprov(); }catch(e){ writeErr(e); b.disabled=false; } }},'🗑 remover'):null)); };
+  const grupos=[]; fotos.forEach(m=>{ const k=dem.some(y=>y.id===m.alvo)?m.alvo:'geral'; let g=grupos.find(x=>x.k===k); if(!g){ g={k,nome:nomeAlvo(m.alvo),fs:[]}; grupos.push(g); } g.fs.push(m); });
+  grupos.sort((a,b)=>(a.k==='geral')-(b.k==='geral')||a.nome.localeCompare(b.nome));
+  const lista=el('div',{class:'rgrupos'},grupos.map(g=>{ const nsel=g.fs.filter(m=>sel.has(m._id)).length, nobs=g.fs.filter(m=>m.obsInt).length;
+    const det=el('details',{class:'rgrp'}); if(relGrpAberto[D+'|'+g.k]) det.open=true; det.addEventListener('toggle',()=>{ relGrpAberto[D+'|'+g.k]=det.open; });
+    const todas=editando?el('button',{type:'button',class:'btn',onclick:e=>{ e.preventDefault(); const marcar=g.fs.some(m=>!sel.has(m._id)); g.fs.forEach(m=>{ if(marcar&&!m.obsInt) sel.add(m._id); else if(!marcar) sel.delete(m._id); }); relGrpAberto[D+'|'+g.k]=true; renderRelAprov(); }},g.fs.some(m=>!sel.has(m._id))?'Marcar todas':'Desmarcar todas'):null;
+    det.append(el('summary',{},el('b',{},g.nome),el('span',{class:'cm'},' · '+g.fs.length+(g.fs.length===1?' foto':' fotos')+' · '+nsel+' no relatório'+(nobs?' · ':'')),nobs?el('span',{class:'rgobs'},'⚠ '+nobs+' com aviso'):null,todas),el('div',{class:'rfotos'},g.fs.map(umaFoto)));
+    return det; }));
   // novas fotos (colar, arrastar ou escolher várias)
   const pend=relPend[D]=relPend[D]||[];
   const fin=el('input',{type:'file',accept:'image/*,video/*',multiple:'',hidden:''});
@@ -2506,6 +2521,8 @@ function calcAtencao(){
   // 3. programação do próximo dia
   const D2=proxDiaUtil(); const P2=PROG[D2];
   if(!(P2&&P2.salvoEm)) add(hora>=17?'alta':'media','Programação','Programação de '+fmt(d(D2))+' ('+DSEM[d(D2).getDay()]+') ainda não salva',P2&&(P2.itens||[]).length?'Tem lista montada, falta gerar o texto e salvar':'A rotina das 17h47 usa a ordem padrão se você não montar',[['Montar programação',()=>{ mDia=D2; go('montar'); renderMontar(); mIrMontar(); }]]);
+  // 3b. acompanhamento sem resposta (depois das 16h)
+  if(util(hj)&&hora>=16){ const sem=aItensDia(hj).filter(o=>!aRespostas(hj,o).length); if(sem.length) add(hora>=17?'alta':'media','Acompanhamento',sem.length+(sem.length===1?' item da programação de hoje sem resposta':' itens da programação de hoje sem resposta'),'Diga se foi executado, se parou e se continua amanhã. Isso monta a programação de amanhã.',[['Responder agora',()=>{ aDia=hj; go('acomp'); window.scrollTo({top:0}); }]]); }
   // 4. frentes
   dem.forEach(x=>{
     if(x.paradaAgora){ const n=diasDesde(x.paradaAgora.a); if(n>ALERTA_PARADA) add('alta','Frentes paradas',x.local,'Parada há '+n+' dias · '+(x.paradaAgora.motivo||'motivo a confirmar')+' · combine a retomada',[['Atualizar',()=>showDet(x.id)]]); }
@@ -2661,9 +2678,10 @@ function renderAcomp(){
 function confirmar(b){ if(b.dataset.ok==='1') return true; b.dataset.ok='1'; b.textContent='Toque de novo para substituir'; setTimeout(()=>{ b.dataset.ok=''; b.textContent='Refazer rascunho'; },5000); return false; }
 
 /* ---------- abas ---------- */
-const VIEWS={atencao:'t-atencao',painel:'t-painel',programadas:'t-prog',agenda:'t-agenda',relatorios:'t-rel',montar:'t-prog',campo:'t-campo',acomp:'t-acomp',lancamentos:'t-lanc',conversas:'t-conv'};
+const VIEWS={atencao:'t-atencao',painel:'t-painel',programadas:'t-prog',agenda:'t-agenda',relatorios:'t-rel',montar:'t-prog',campo:'t-campo',acomp:'t-acomp',lancamentos:'t-lanc'};
 let relSel=null;
 function go(name){
+  if(name==='conversas'){ name='lancamentos'; setTimeout(()=>{ const c=$('cvdet'); if(c){ c.open=true; c.scrollIntoView({behavior:'smooth',block:'start'}); } },60); }
   if(name&&name.startsWith('relatorios/')){ relSel=name.split('/')[1]||null; name='relatorios'; } else if(name==='relatorios') relSel=null;
   if(!VIEWS[name]||(window.__PUBLIC__&&(name==='atencao'||name==='lancamentos'||name==='campo'||name==='acomp'||name==='conversas'||name==='montar'))) name='painel';
   for(const v of Object.keys(VIEWS)) $(v).hidden=v!==name; for(const t of new Set(Object.values(VIEWS))) $(t).setAttribute('aria-selected',String(t===VIEWS[name])); document.querySelectorAll('.psw button').forEach(b=>{ b.classList.toggle('primary',b.dataset.v===name); b.setAttribute('aria-pressed',String(b.dataset.v===name)); });
@@ -2676,7 +2694,7 @@ function go(name){
 for(const [v,t] of Object.entries(VIEWS)) if(v!=='montar') $(t).addEventListener('click',()=>go(v));
 document.querySelectorAll('.psw button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.v)));
 addEventListener('hashchange',()=>go(location.hash.slice(1)||'painel'));
-if(window.__PUBLIC__){ $('tabsep').hidden=true; $('t-atencao').hidden=true; document.querySelectorAll('.psw').forEach(x=>x.hidden=true); $('t-lanc').hidden=true; $('t-campo').hidden=true; $('t-acomp').hidden=true; $('t-conv').hidden=true; document.querySelector('.foot').textContent='Toque em uma frente para ver o histórico completo dela. Versão pública só de leitura, atualizada automaticamente.'; }
+if(window.__PUBLIC__){ $('tabsep').hidden=true; $('t-atencao').hidden=true; document.querySelectorAll('.psw').forEach(x=>x.hidden=true); $('t-lanc').hidden=true; $('t-campo').hidden=true; $('t-acomp').hidden=true;  document.querySelector('.foot').textContent='Toque em uma frente para ver o histórico completo dela. Versão pública só de leitura, atualizada automaticamente.'; }
 if(location.hash.length>1) go(location.hash.slice(1));
 
 /* ---------- filtros ---------- */
