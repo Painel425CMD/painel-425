@@ -620,6 +620,8 @@ header.top{display:block}
 .relfx{margin:6px 0 10px}.relfx ul{margin:4px 0;padding-left:20px;font-size:13.5px}
 .relv .gal .thb{width:150px;height:150px}.relv .gal .gcap{max-width:150px;font-size:12px}
 #relaprov{margin-bottom:14px}
+.robs{background:#fdecea;color:#8a1c12;border-radius:6px;padding:4px 6px;font-size:12px;line-height:1.3}
+.robs small{color:#8a1c12;opacity:.7}
 </style>
 </head>
 <body>
@@ -1377,7 +1379,8 @@ dlg.addEventListener('click',e=>{if(e.target===dlg) dlg.close();});
 function refreshDet(){ if(!detOpen||!dlg.open) return; const q=dextra.querySelector('.quick:not([hidden])'); if(q) return; detOpen.kind==='f'?showDet(detOpen.id):showPend(detOpen.id); }
 
 /* ---------- fotos e vídeos ---------- */
-let AS=null, MD=[];
+let AS=null, MD=[], PED=[];
+async function pedir(tipo,data){ const id='PD-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); const v={tipo,data:data||'',situacao:'novo',criadoEm:Date.now(),por:'Maria (Sinarco)'}; await db.collection('pedidos').doc(id).set(v); PED.push({_id:id,...v}); return id; }
 const MAXB=20*1024*1024;
 function newMid(){return 'F'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 async function prepFile(f){
@@ -2287,9 +2290,9 @@ function renderRelAprov(){
   const dr=relDraft[D]; if(editando&&dr){ ex.value=dr.ex; pr.value=dr.pr; ob.value=dr.ob; }
   const guarda=()=>{ relDraft[D]={ex:ex.value,pr:pr.value,ob:ob.value}; }; [ex,pr,ob].forEach(t=>t.addEventListener('input',guarda));
   if(!editando){ ex.readOnly=true; ob.readOnly=true; }
-  const fotos=fotosDoDia(D).filter(m=>m.publico);
-  if(!relSelFotos[D]) relSelFotos[D]=new Set(R&&R.fotos&&R.fotos.length?R.fotos:fotos.map(m=>m._id));
-  const sel=relSelFotos[D]; fotos.forEach(m=>{ if(m.criadoEm>(R&&R.salvoEm||R&&R.aprovadoEm||0)&&!(R&&R.fotos||[]).includes(m._id)) sel.add(m._id); });
+  const fotos=fotosDoDia(D).filter(m=>!m.removido&&(m.publico||m.origem==='rdo'||m.obsInt));
+  if(!relSelFotos[D]) relSelFotos[D]=new Set(R&&R.fotos&&R.fotos.length?R.fotos:fotos.filter(m=>m.publico&&m.incluir).map(m=>m._id));
+  const sel=relSelFotos[D]; fotos.forEach(m=>{ if(m.publico&&m.incluir&&m.criadoEm>(R&&R.salvoEm||R&&R.aprovadoEm||0)&&!(R&&R.fotos||[]).includes(m._id)) sel.add(m._id); });
   const info=el('div',{class:'msg',role:'status'});
   const link=SITE_URL+'#relatorios/'+D, linha='Relatório de '+fmt(d(D))+' publicado: '+link;
   const est=R&&R.publico?el('p',{class:'msg ok'},'Publicado em '+fdh(R.aprovadoEm)+(relEdit[D]?'. Você está editando: as mudanças só vão para o site quando você publicar de novo.':'. Aparece no site na próxima atualização (de hora em hora) ou quando você pedir "atualiza o site".'))
@@ -2297,7 +2300,8 @@ function renderRelAprov(){
   const doc=pub=>({data:D,demandas:demandasAceitas(D),obs:ob.value.trim(),exec:ex.value.trim(),prog:pr.value.trim(),progData:D2,fotos:fotos.filter(m=>sel.has(m._id)).map(m=>m._id),salvoEm:Date.now(),aprovadoEm:pub?Date.now():(R&&R.aprovadoEm||0),aprovadoPor:'Maria (Sinarco)',publico:pub,rascunho:!pub});
   const salvar=async pub=>{ if(relPend[D]&&relPend[D].length){ info.className='msg err'; info.textContent='Há fotos novas ainda não salvas. Clique em "Salvar fotos" antes.'; return; }
     const v=doc(pub); try{ await db.collection('relatorios').doc(D).set(v); REL[D]={...v}; relEdit[D]=false; delete relDraft[D];
-      if(pub){ try{ await navigator.clipboard.writeText(linha); info.className='msg ok'; info.textContent='Publicado. A linha com o link foi copiada: cole no grupo.'; }catch(_){ info.className='msg ok'; info.textContent='Publicado. Copie a linha abaixo para o grupo.'; } }
+      if(pub){ for(const m of fotos.filter(m=>sel.has(m._id)&&!m.publico)){ try{ await db.collection('midia').doc(m._id).update({publico:true}); m.publico=true; }catch(e){ writeErr(e); } } try{ await pedir('site',D); }catch(e){ writeErr(e); } }
+      if(pub){ try{ await navigator.clipboard.writeText(linha); info.className='msg ok'; info.textContent='Publicado. O site público é atualizado em até 15 minutos. A linha com o link foi copiada: cole no grupo.'; }catch(_){ info.className='msg ok'; info.textContent='Publicado. Copie a linha abaixo para o grupo.'; } }
       else { info.className='msg ok'; info.textContent='Rascunho salvo. Ainda não está no site.'; }
       const keep=info.textContent, kc=info.className; renderRelAprov(); const ni=box.querySelector('[role=status]'); if(ni){ ni.className=kc; ni.textContent=keep; } }catch(e){ info.className='msg err'; info.textContent='Não foi possível salvar.'; writeErr(e); } };
   // fotos existentes
@@ -2307,7 +2311,9 @@ function renderRelAprov(){
     const lg=el('input',{type:'text',value:m.legenda||'',placeholder:'Legenda',maxlength:'200'}); lg.readOnly=!editando||!can;
     lg.addEventListener('change',async()=>{ try{ await db.collection('midia').doc(m._id).update({legenda:lg.value.trim()}); m.legenda=lg.value.trim(); }catch(e){ writeErr(e); } });
     return el('div',{class:'rfoto'},el('button',{type:'button',class:'rth',onclick:()=>lightbox(m)},m.tipo==='video'?el('video',{src:mediaSrc(m)+'#t=0.5',preload:'metadata',muted:''}):el('img',{src:mediaSrc(m),loading:'lazy',alt:m.legenda||'Foto'})),
-      el('div',{class:'rfm'},el('label',{class:'rinc'},cb,' no relatório'),el('span',{class:'cm'},nomeAlvo(m.alvo)),lg)); }));
+      el('div',{class:'rfm'},el('label',{class:'rinc'},cb,' no relatório'),el('span',{class:'cm'},nomeAlvo(m.alvo)),lg,
+        m.obsInt?el('div',{class:'robs'},'⚠ '+m.obsInt,el('small',{},' (só você vê)')):null,
+        editando&&can?el('button',{type:'button',class:'del',onclick:async()=>{ try{ await db.collection('midia').doc(m._id).update({removido:true,publico:false}); m.removido=true; m.publico=false; sel.delete(m._id); renderRelAprov(); }catch(e){ writeErr(e); } }},'remover'):null)); }));
   // novas fotos (colar, arrastar ou escolher várias)
   const pend=relPend[D]=relPend[D]||[];
   const fin=el('input',{type:'file',accept:'image/*,video/*',multiple:'',hidden:''});
@@ -2320,19 +2326,23 @@ function renderRelAprov(){
     pend.forEach((it,i)=>{ const lg=el('input',{type:'text',value:it.legenda,placeholder:'Legenda (opcional)',maxlength:'200'}); lg.addEventListener('input',()=>{ it.legenda=lg.value; });
       const fs=el('select',{},frOpts()); fs.value=it.alvo; fs.addEventListener('change',()=>{ it.alvo=fs.value; });
       pl.appendChild(el('div',{class:'rfoto novo'},el('div',{class:'rth'},/^video/.test(it.file.type)?el('video',{src:it.url,muted:''}):el('img',{src:it.url,alt:''})),
-        el('div',{class:'rfm'},el('span',{class:'cm'},'Nova · frente:'),fs,lg,el('button',{type:'button',class:'del',onclick:()=>{ URL.revokeObjectURL(it.url); pend.splice(i,1); desenhaPend(); }},'tirar')))); }); }
+        el('div',{class:'rfm'},el('span',{class:'cm'},'Nova · frente:'),fs,lg,el('button',{type:'button',class:'del',onclick:()=>{ URL.revokeObjectURL(it.url); pend.splice(i,1); desenhaPend(); }},'remover')))); }); }
   const drop=el('div',{class:'rdrop',tabindex:'0'},el('b',{},'Adicionar fotos'),el('span',{},' cole aqui (Ctrl+V), arraste ou '),el('button',{type:'button',class:'btn',onclick:()=>fin.click()},'escolha várias'),fin);
   fin.addEventListener('change',()=>{ addFiles(fin.files); fin.value=''; });
   drop.addEventListener('dragover',e=>{ e.preventDefault(); drop.classList.add('on'); }); drop.addEventListener('dragleave',()=>drop.classList.remove('on'));
   drop.addEventListener('drop',e=>{ e.preventDefault(); drop.classList.remove('on'); addFiles(e.dataTransfer.files); });
   box.onpaste=e=>{ if(!editando) return; const fs=[...(e.clipboardData&&e.clipboardData.files||[])]; if(fs.length){ e.preventDefault(); addFiles(fs); } };
   desenhaPend();
+  const pRdo=PED.filter(p=>p.tipo==='importar_rdo'&&p.data===D).sort((a,b)=>b.criadoEm-a.criadoEm)[0];
+  const rdoMsg=el('span',{class:'msg'},pRdo?(pRdo.situacao==='novo'?'Pedido enviado às '+fdh(pRdo.criadoEm).split(' ')[1]+'. As fotos da pasta do RDO chegam aqui em até 15 minutos.':'Fotos do RDO importadas'+(pRdo.feitoEm?' em '+fdh(pRdo.feitoEm):'')+(pRdo.resumo?': '+pRdo.resumo:'.')):'');
+  const bRdo=el('button',{type:'button',class:'btn primary',onclick:async()=>{ bRdo.disabled=true; try{ await pedir('importar_rdo',D); rdoMsg.className='msg ok'; rdoMsg.textContent='Pedido enviado. As fotos da pasta "RDO '+D.slice(8,10)+'-'+D.slice(5,7)+'-'+D.slice(2,4)+'" chegam aqui em até 15 minutos, já com legenda.'; }catch(e){ rdoMsg.className='msg err'; rdoMsg.textContent='Não foi possível enviar o pedido.'; writeErr(e); bRdo.disabled=false; } }},'Carregar fotos do RDO');
+  if(pRdo&&pRdo.situacao==='novo') bRdo.disabled=true;
   box.append(el('h2',{},'Relatório do dia para a fiscalização ',el('small',{},'edite, salve o rascunho e publique quando estiver pronto')),
     el('div',{class:'relrow'},el('label',{},'Dia',dt),editando?el('button',{type:'button',class:'btn',onclick:()=>{ ex.value=gerarMsg('exec',D).texto; const P=PROG[D2]; pr.value=P&&P.texto?P.texto:gerarMsg('prog',D2).texto; guarda(); info.textContent='Texto refeito com os lançamentos atuais (ainda não salvo).'; }},'Refazer com os lançamentos atuais'):null),
     el('div',{style:'padding:0 16px;display:grid;gap:10px'},est,
       el('label',{class:'rlab'},'Observações do dia',ob),
       el('label',{class:'rlab'},'Serviços executados',ex),
-      el('div',{class:'rlab'},'Fotos do dia: '+fotos.length+(fotos.length?' (marque as que entram no relatório)':''),fotos.length?lista:null,editando&&can?drop:null,editando&&can?pl:null,editando&&can?el('div',{class:'crow'},bSalvarF,fm):null),
+      el('div',{class:'rlab'},'Fotos do dia: '+fotos.length+(fotos.length?' (marque as que entram no relatório)':''),editando&&can?el('div',{class:'crow'},bRdo,rdoMsg):null,fotos.length?lista:null,editando&&can?drop:null,editando&&can?pl:null,editando&&can?el('div',{class:'crow'},bSalvarF,fm):null),
       (()=>{ const da=demandasAceitas(D); return el('div',{class:'rlab'},'Demandas extraordinárias aceitas no dia: '+da.length+(da.length?'':' (só entram as aceitas; descartadas e em avaliação não vão)'),da.length?el('ul',{},da.map(x=>el('li',{},el('b',{},x.id),' · '+(x.tipo?x.tipo+' · ':'')+x.pedido+(x.local?' – '+x.local:'')+' · '+x.destino))):null); })(),
       el('label',{class:'rlab'},'Programação de '+fmt(d(D2))+' (vem da aba Programação, se salva)',pr),
       can?(()=>{ const pi=el('span',{class:'msg',role:'status'}); const P2s=PROG[D2]; if(P2s&&P2s.salvoEm){ pi.textContent='Programação de '+fmt(d(D2))+' salva em '+fdh(P2s.salvoEm)+'.'; }
@@ -2525,9 +2535,10 @@ render();
     render();
   },()=>{});
   db.collection('midia').onSnapshot(s=>{
-    MD=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,alvo:str(v.alvo),evento:str(v.evento),asset:str(v.asset),tipo:v.tipo==='video'?'video':'foto',nome:str(v.nome),legenda:str(v.legenda),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0,publico:v.publico===true,src:window.__PUBLIC__&&/^fotos\/[A-Za-z0-9_.-]+$/.test(str(v.src))?str(v.src):''};}).filter(m=>m.alvo&&/^[A-Za-z0-9_-]{8,64}$/.test(m.asset)&&(!window.__PUBLIC__||(m.publico&&m.src)));
+    MD=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,alvo:str(v.alvo),evento:str(v.evento),asset:str(v.asset),tipo:v.tipo==='video'?'video':'foto',nome:str(v.nome),legenda:str(v.legenda),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0,publico:v.publico===true,incluir:v.incluir!==false,obsInt:window.__PUBLIC__?'':str(v.obsInt),removido:v.removido===true,origem:str(v.origem),src:window.__PUBLIC__&&/^fotos\/[A-Za-z0-9_.-]+$/.test(str(v.src))?str(v.src):''};}).filter(m=>m.alvo&&/^[A-Za-z0-9_-]{8,64}$/.test(m.asset)&&(!window.__PUBLIC__||(m.publico&&m.src)));
     render();
   },()=>{});
+  if(!window.__PUBLIC__) db.collection('pedidos').onSnapshot(s=>{ PED=s.docs.map(x=>({_id:x.id,...(x.data()||{})})); renderRelAprov(); },()=>{});
   db.collection('programacao').onSnapshot(s=>{ PROG={}; s.docs.forEach(x=>{ const v=x.data()||{}; PROG[x.id]={_v:true,itens:Array.isArray(v.itens)?v.itens:[],texto:str(v.texto),geradoEm:typeof v.geradoEm==='number'?v.geradoEm:0,salvoEm:typeof v.salvoEm==='number'?v.salvoEm:0}; }); renderMontar(); renderProgSalvas(); renderAtencao(); },()=>{});
   if(!window.__PUBLIC__){
     db.collection('recados').onSnapshot(s=>{ RC=s.docs.map(x=>{const v=x.data()||{};return {_id:x.id,texto:str(v.texto),quem:str(v.quem),data:isoOk(v.data)||'',criadoEm:typeof v.criadoEm==='number'?v.criadoEm:0,situacao:str(v.situacao)};}); renderCampo(); renderAtencao(); },()=>{});
