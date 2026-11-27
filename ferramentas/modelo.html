@@ -2158,8 +2158,9 @@ const resumo=t=>{ t=str(t).replace(/\s+/g,' ').trim(); const f=t.split(/(?<=\.)\
 function tituloFr(x){ if(x.otb) return 'OPERAÇÃO TAPA-BURACOS (OTB)';
   const ds=corta(x.descricao.split(/[(:;,]/)[0],50), lc=corta(x.local.split(/ – |\(|;|,/)[0],42);
   return (norm(lc).includes(norm(ds))?lc:ds+' – '+lc).toUpperCase(); }
-const RANK_ROC=/roçad/i, RANK_PV=/alteamento de pv|limpeza do sistema de drenagem/i;
-function ordemFr(x){ return RANK_ROC.test(x.equipe+' '+x.descricao)?0:x.otb?1:RANK_PV.test(x.equipe)?2:x.sit==='andamento'?3:x.sit==='pendente'?4:x.sit==='parada'?5:3; }
+const RANK_ROC=/roçad/i, RANK_PV=/alteamento de pv|limpeza do sistema de drenagem/i, RANK_JAIR=/jair/i;
+// ordem padrão da Maria: roçada, equipe do Sr. Jair, OTB, alteamento de PV, demais; terceirizadas (KRV, Jonas, Pais e Filhos) no bloco de baixo
+function ordemFr(x){ return RANK_ROC.test(x.equipe+' '+x.descricao)?0:RANK_JAIR.test(x.equipe||'')?1:x.otb?2:RANK_PV.test((x.equipe||'')+' '+x.descricao)?3:x.sit==='andamento'?4:x.sit==='pendente'?5:x.sit==='parada'?6:4; }
 function progPadrao(D){ return dem.filter(x=>x.sit==='andamento'||(x.sit==='pendente'&&x.inicio&&x.inicio<=D)||x.sit==='parada').sort((a,b)=>(TERC.test(a.equipe)-TERC.test(b.equipe))||(ordemFr(a)-ordemFr(b))); }
 function gerarMsg(tipo,dia,sel){
   const D=dia, dd=d(D), dstr=fmt(dd)+'/'+dd.getFullYear();
@@ -2327,9 +2328,12 @@ function candidatos(D){
   AG.filter(a=>a.data===D).forEach(a=>sug.push({k:'a',id:a._id,on:false}));
   return pad.concat(sug);
 }
+function mOrdem(){ const on=mLista.filter(x=>x.on), t=e=>{ const v=mVirtual(e,mDia); return !!(v&&TERC.test(v.equipe||'')); }; return on.filter(e=>!t(e)).concat(on.filter(t)); }
+function progAnterior(D){ const ks=Object.keys(PROG).filter(k=>k<D&&PROG[k]&&Array.isArray(PROG[k].itens)&&PROG[k].itens.length).sort(); return ks.length?PROG[ks[ks.length-1]]:null; }
 function mItens(D){
-  const salvo=PROG[D]; const base=candidatos(D);
-  if(!salvo) return base;
+  let salvo=PROG[D]; const base=candidatos(D);
+  if(!salvo){ const ant=progAnterior(D); if(!ant) return base; const ativos=new Set(base.filter(e=>e.on).map(e=>e.id));
+    salvo={itens:ant.itens.filter(e=>e&&e.k==='f'&&ativos.has(e.id)).map(e=>({k:'f',id:e.id,on:!!e.on,ov:e.ov||null}))}; }
   const key=e=>e.k==='t'?'t:'+e.id:e.k+':'+e.id;
   const out=[]; const vistos=new Set();
   for(const e of salvo.itens){ if(!e||!e.k) continue; const k=key(e); if(vistos.has(k)) continue;
@@ -2352,8 +2356,10 @@ function mSalvar(){ if(!db||canWrite===false) return; clearTimeout(mSalvaT); con
   const old=PROG[D]||{}; PROG[D]={_v:true,itens,texto:old.texto||'',geradoEm:old.geradoEm||0,salvoEm:old.salvoEm||0}; mSalvaT=setTimeout(()=>mGravar(D),500); }
 function mGravar(D){ const P=PROG[D]; if(!P) return Promise.resolve(); return db.collection('programacao').doc(D).set({data:D,itens:P.itens,texto:P.texto||'',geradoEm:P.geradoEm||0,salvoEm:P.salvoEm||0,atualizadoEm:Date.now()}).catch(writeErr); }
 const fdh=t=>new Date(t).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-let mBusca='', mVerTexto=null;
-function mSalvarTexto(D,texto){ if(!PROG[D]) mSalvar(); PROG[D].texto=texto; PROG[D].geradoEm=Date.now(); mSalvar(); }
+let mBusca='', mVerTexto=null, mRegen=false;
+// renumera 1, 2, 3… em sequência (vale para os dois blocos), mesmo depois de mover ou apagar itens no texto
+function renumera(t){ let n=0; return String(t||'').split('\n').map(l=>l.replace(/^(\s*\*?)\d+\.(\s)/,(m,a,b)=>a+(++n)+'.'+b)).join('\n'); }
+function mSalvarTexto(D,texto){ texto=renumera(texto); if(!PROG[D]) mSalvar(); PROG[D].texto=texto; PROG[D].geradoEm=Date.now(); mSalvar(); }
 function renderMontar(){
   const box=$('montarbox'); if(!box||window.__PUBLIC__) return;
   if(!mDia) mDia=proxDiaUtil();
@@ -2366,8 +2372,9 @@ function renderMontar(){
   const out=el('textarea',{class:'msgout',rows:'16','aria-label':'Programação gerada (pode editar antes de copiar)'}); const info=el('div',{class:'msg'});
   const gerar=()=>{ const sel=mLista.filter(e=>e.on).map(e=>mVirtual(e,mDia)).filter(Boolean); out.value=gerarMsg('prog',mDia,sel).texto; if(can) mSalvarTexto(mDia,out.value); info.className='msg'; info.textContent=sel.length+' itens. Texto salvo na programação de '+fmt(d(mDia))+'. Você pode editar antes de copiar.'; };
   if(PROG[mDia]&&PROG[mDia].texto){ out.value=PROG[mDia].texto; info.className=PROG[mDia].salvoEm?'msg ok':'msg'; info.textContent=(PROG[mDia].salvoEm?'Programação salva em '+fdh(PROG[mDia].salvoEm)+'.':'Rascunho de '+fdh(PROG[mDia].geradoEm)+' (ainda não salvo).')+' Para atualizar, gere de novo e salve: a nova substitui a anterior.'; }
-  out.addEventListener('change',()=>{ if(can&&out.value.trim()) mSalvarTexto(mDia,out.value); });
-  const cp=el('button',{type:'button',class:'btn',onclick:async()=>{ if(can&&out.value.trim()) mSalvarTexto(mDia,out.value); try{ await navigator.clipboard.writeText(out.value); info.className='msg ok'; info.textContent='Copiado. Cole no WhatsApp.'; }catch(_){ out.select(); info.textContent='Texto selecionado. Use copiar.'; } }},'Copiar');
+  if(mRegen){ mRegen=false; if(PROG[mDia]&&PROG[mDia].texto) gerar(); }
+  out.addEventListener('change',()=>{ out.value=renumera(out.value); if(can&&out.value.trim()) mSalvarTexto(mDia,out.value); });
+  const cp=el('button',{type:'button',class:'btn',onclick:async()=>{ out.value=renumera(out.value); if(can&&out.value.trim()) mSalvarTexto(mDia,out.value); try{ await navigator.clipboard.writeText(out.value); info.className='msg ok'; info.textContent='Copiado. Cole no WhatsApp.'; }catch(_){ out.select(); info.textContent='Texto selecionado. Use copiar.'; } }},'Copiar');
   const head=el('section',{class:'card'},el('h2',{},'Montar programação ',el('small',{},'escolha o que entra e a ordem; fica salvo e a rotina das 17h47 usa esta lista')),
     el('div',{class:'relrow'},el('label',{},'Programação do dia',dt),el('button',{type:'button',class:'btn',onclick:()=>{ delete PROG[mDia]; mLista=candidatos(mDia); mSalvar(); renderMontar(); }},'Voltar ao padrão')));
   box.appendChild(head);
@@ -2377,16 +2384,16 @@ function renderMontar(){
     if(e.k==='p') return [e.id+' · '+corta(v.descricao,80),'Pendência',''];
     if(e.k==='a') return [v.descricao,'Agenda',''];
     return [v.descricao+(e.local?' · '+e.local:''), e.resp||'Responsável a definir','Avulsa']; };
-  const secoes=[['Na programação',mLista.filter(e=>e.on)],['Sugestões (desmarcadas)',mLista.filter(e=>!e.on)]];
+  const secoes=[['Na programação',mOrdem()],['Sugestões (desmarcadas)',mLista.filter(e=>!e.on)]];
   for(const [tt,arr] of secoes){ ul.appendChild(el('div',{class:'cgrp'},tt+' · '+arr.length));
     arr.forEach(e=>{ const i=mLista.indexOf(e); const [a,b,c]=rotulo(e);
       const cb=el('input',{type:'checkbox','aria-label':'Incluir '+a}); cb.checked=!!e.on; cb.disabled=!can;
-      cb.addEventListener('change',()=>{ e.on=cb.checked; if(e.on){ mLista.splice(i,1); const last=mLista.reduce((m,x,j)=>x.on?j:m,-1); mLista.splice(last+1,0,e); } mSalvar(); renderMontar(); });
-      const mv=dlt=>{ const on=mLista.filter(x=>x.on===e.on); const j=on.indexOf(e)+dlt; if(j<0||j>=on.length) return; const other=on[j]; const a1=mLista.indexOf(e), a2=mLista.indexOf(other); mLista[a1]=other; mLista[a2]=e; mSalvar(); renderMontar(); };
+      cb.addEventListener('change',()=>{ e.on=cb.checked; if(e.on){ mLista.splice(i,1); const last=mLista.reduce((m,x,j)=>x.on?j:m,-1); mLista.splice(last+1,0,e); } mRegen=true; mSalvar(); renderMontar(); });
+      const mv=dlt=>{ const on=e.on?mOrdem():mLista.filter(x=>!x.on); const j=on.indexOf(e)+dlt; if(j<0||j>=on.length) return; const other=on[j]; const a1=mLista.indexOf(e), a2=mLista.indexOf(other); mLista[a1]=other; mLista[a2]=e; mRegen=true; mSalvar(); renderMontar(); };
       ul.appendChild(el('div',{class:'mrow'+(e.on?' on':'')},el('label',{class:'mchk'},cb),
-        el('div',{class:'mtx'},el('b',{},a),el('span',{},[e.ov?(e.ov.resp||b):b,c].filter(Boolean).join(' · '),e.novo&&e.on?el('span',{class:'mnovo'},' novo'):null,e.ov?el('span',{class:'mnovo'},' · editado para este dia'):null)),
+        el('div',{class:'mtx'},el('b',{},e.on?(mOrdem().indexOf(e)+1)+'. ':'',a),el('span',{},[e.ov?(e.ov.resp||b):b,c].filter(Boolean).join(' · '),e.novo&&e.on?el('span',{class:'mnovo'},' novo'):null,e.ov?el('span',{class:'mnovo'},' · editado para este dia'):null)),
         el('div',{class:'mbt'},can?el('button',{type:'button',class:'btn',onclick:ev=>{ const row=ev.target.closest('.mrow'); const nx=row.nextSibling; if(nx&&nx.classList&&nx.classList.contains('medit')){ nx.remove(); return; } row.after(mEditForm(e)); }},'Editar'):null,can?el('button',{type:'button',class:'btn '+(e.on?'mexc':'minc'),onclick:()=>{ cb.checked=!e.on; cb.dispatchEvent(new Event('change')); }},e.on?'Excluir da programação':'Incluir na programação'):null,e.on&&can?[el('button',{type:'button',class:'btn','aria-label':'Subir',onclick:()=>mv(-1)},'↑'),el('button',{type:'button',class:'btn','aria-label':'Descer',onclick:()=>mv(1)},'↓')]:null,
-          e.k==='t'&&can?[el('button',{type:'button',class:'btn',title:'Criar frente programada para o dia',onclick:async()=>{ const id=await novaFrenteAvulsa(e); if(id){ const k=mLista.indexOf(e); mLista[k]={k:'f',id,on:true}; mSalvar(); renderMontar(); } }},'Virar frente'),delBtn(()=>{ mLista.splice(mLista.indexOf(e),1); mSalvar(); renderMontar(); })]:null,
+          e.k==='t'&&can?[el('button',{type:'button',class:'btn',title:'Criar frente programada para o dia',onclick:async()=>{ const id=await novaFrenteAvulsa(e); if(id){ const k=mLista.indexOf(e); mLista[k]={k:'f',id,on:true}; mSalvar(); renderMontar(); } }},'Virar frente'),delBtn(()=>{ mLista.splice(mLista.indexOf(e),1); mRegen=true; mSalvar(); renderMontar(); })]:null,
           e.k!=='t'?el('button',{type:'button',class:'btn',onclick:()=>e.k==='f'?showDet(e.id):e.k==='p'?showPend(e.id):go('agenda')},'Ver'):null))); }); }
   head.appendChild(ul);
   if(can){ const t=el('input',{type:'text',placeholder:'O quê (ex.: Roçada e limpeza)',maxlength:'120'}), l=el('input',{type:'text',placeholder:'Onde',maxlength:'120'}), r=el('input',{type:'text',placeholder:'Responsável (equipe)',maxlength:'80',list:'mEquipes'}), x=el('input',{type:'text',placeholder:'Detalhe curto (opcional)',maxlength:'160'});
@@ -2395,7 +2402,7 @@ function renderMontar(){
       el('b',{},'Incluir tarefa avulsa'),el('div',{class:'mav'},t,l,r,x,dl,el('button',{type:'submit',class:'btn'},'Incluir'))));
   }
   head.appendChild(el('div',{style:'padding:12px 16px 16px;display:grid;gap:8px'},el('div',{class:'crow'},el('button',{type:'button',class:'btn primary',onclick:gerar},'Gerar programação'),
-    can?el('button',{type:'button',class:'btn primary',onclick:async()=>{ if(!out.value.trim()) gerar(); mSalvar(); clearTimeout(mSalvaT); PROG[mDia].texto=out.value; if(!PROG[mDia].geradoEm) PROG[mDia].geradoEm=Date.now(); PROG[mDia].salvoEm=Date.now(); await mGravar(mDia); info.className='msg ok'; info.textContent='Programação de '+fmt(d(mDia))+' salva às '+fdh(PROG[mDia].salvoEm).split(' ')[1]+'. Se já havia uma salva, ela foi substituída.'; renderMontarLista(); }},'Salvar programação do dia'):null,
+    can?el('button',{type:'button',class:'btn primary',onclick:async()=>{ if(!out.value.trim()) gerar(); out.value=renumera(out.value); mSalvar(); clearTimeout(mSalvaT); PROG[mDia].texto=out.value; if(!PROG[mDia].geradoEm) PROG[mDia].geradoEm=Date.now(); PROG[mDia].salvoEm=Date.now(); await mGravar(mDia); info.className='msg ok'; info.textContent='Programação de '+fmt(d(mDia))+' salva às '+fdh(PROG[mDia].salvoEm).split(' ')[1]+'. Se já havia uma salva, ela foi substituída.'; renderMontarLista(); }},'Salvar programação do dia'):null,
     cp,info),out));
   const hs=el('section',{class:'card',id:'mSalvas'}); box.insertBefore(hs,box.firstChild); renderMontarLista();
 }
