@@ -38,6 +38,33 @@ def main(src, out):
         a = str(v.get('asset', ''))
         if v.get('publico') is True and a in tem:
             pub[k] = {**{x: v.get(x) for x in ('alvo', 'evento', 'asset', 'tipo', 'data', 'criadoEm', 'publico', 'legenda')}, 'nome': '', 'src': 'fotos/' + tem[a]}
+    # a mesma foto enviada mais de uma vez (ex.: pelo relatório e pelo RDO) aparece uma vez só:
+    # fica a cópia ligada a uma frente, e os relatórios passam a apontar para ela
+    import hashlib, re
+    def nome_leg(n):
+        n = re.sub(r'\.[A-Za-z0-9]+$', '', n or '')
+        return re.sub(r'\s+', ' ', re.sub(r'\s*\(\d+\)$', '', n)).strip()
+    grupos = {}
+    for k, v in sorted(pub.items(), key=lambda kv: (kv[1].get('criadoEm') or 0)):
+        h = hashlib.sha1(open(os.path.join(pasta, os.path.basename(v['src'])), 'rb').read()).hexdigest()
+        grupos.setdefault((v.get('data'), h), []).append(k)
+    troca = {}
+    for ks in grupos.values():
+        ks.sort(key=lambda k: (not str(pub[k].get('alvo', '')).startswith(('D-', 'P-')), not pub[k].get('legenda')))
+        c = ks[0]
+        if not pub[c].get('legenda'):
+            pub[c]['legenda'] = next((pub[k]['legenda'] for k in ks if pub[k].get('legenda')), '') or nome_leg(dados['midia'][c].get('nome'))
+        for k in ks[1:]:
+            troca[k] = c
+            pub.pop(k)
+    for r in dados['relatorios'].values():
+        if isinstance(r.get('fotos'), list):
+            vistos, nova = set(), []
+            for k in r['fotos']:
+                k = troca.get(k, k)
+                if k not in vistos:
+                    vistos.add(k); nova.append(k)
+            r['fotos'] = nova
     dados['midia'] = pub
     # agenda: só os itens marcados para o site público
     dados['agenda'] = {k: v for k, v in dados['agenda'].items() if v.get('publico') is not False}

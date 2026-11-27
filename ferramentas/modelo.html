@@ -689,6 +689,33 @@ header.top{display:block}
 .xdet>summary{padding:14px 16px;cursor:pointer}
 .xdet>summary small{color:var(--muted);font-weight:400}
 .xform .crow>.cq,.xform .crow>input{flex:1;min-width:160px}
+
+/* aba Fotos */
+.fotbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:0 16px 14px}
+.fotbar select,.fotbar input[type=date]{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.fotup h3,.fotgrp h3{margin:0;font-size:15px}
+.fotup{padding:14px 16px 12px}.fotup .fotform{margin:10px 0 6px}
+.fotform{display:grid;grid-template-columns:minmax(200px,1fr) minmax(220px,1.4fr) auto;gap:10px;align-items:end}
+.fotform label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.fotform label.pubchk{display:flex;align-items:center;gap:6px;padding-bottom:8px;color:inherit}
+.fotform select,.fotform input[type=text]{width:100%;min-width:0;box-sizing:border-box;font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8px;color:var(--ink,#222)}
+.fotup .cm{display:block;margin-bottom:8px}
+.fotgh{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:12px 16px 4px}
+.fotgh small{font-weight:400;color:var(--muted)}
+.relfr .fotgh{padding:6px 0 0}
+.fotgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;padding:8px 16px 16px}
+.fot{margin:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+.fotth{position:relative;display:block;width:100%;aspect-ratio:4/3;padding:0;border:0;background:var(--bg);cursor:zoom-in}
+.fotth img,.fotth video{width:100%;height:100%;object-fit:cover;display:block}
+.fot figcaption{display:grid;gap:6px;padding:8px;font-size:12px}
+.fotn{font-weight:600;line-height:1.3;word-break:break-word}
+.fota{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.fot .robs{font-size:11px}
+.btn.dlb{padding:4px 10px;font-size:12px}
+.gal .btn.dlb{padding:2px 8px}
+.lbox .lxd{position:absolute;top:12px;right:110px}
+@media (max-width:700px){.fotform{grid-template-columns:1fr}.fotgrid{grid-template-columns:repeat(2,1fr);gap:8px;padding:8px 10px 12px}}
+@media print{.dlb,.lxd,.fotbar .btn,.fotgh .btn{display:none!important}}
 </style>
 </head>
 <body>
@@ -709,6 +736,7 @@ header.top{display:block}
     <button class="tab" role="tab" id="t-prog" aria-selected="false" aria-controls="programadas" type="button">Programação</button>
     <button class="tab" role="tab" id="t-agenda" aria-selected="false" aria-controls="agenda" type="button">Agenda</button>
     <button class="tab" role="tab" id="t-rel" aria-selected="false" aria-controls="relatorios" type="button">Relatórios</button>
+    <button class="tab" role="tab" id="t-fotos" aria-selected="false" aria-controls="fotos" type="button">Fotos</button>
     <span class="tabsep" id="tabsep" aria-hidden="true">Gestão</span>
     <button class="tab int" role="tab" id="t-atencao" aria-selected="false" aria-controls="atencao" type="button">Atenção</button>
     <button class="tab int" role="tab" id="t-acomp" aria-selected="false" aria-controls="acomp" type="button">Acompanhamento</button>
@@ -770,6 +798,10 @@ header.top{display:block}
   <div class="view" id="relatorios" role="tabpanel" aria-labelledby="t-rel" hidden>
     <section class="card" id="relaprov" hidden></section>
     <div class="progwrap" id="relbox"></div>
+  </div>
+
+  <div class="view" id="fotos" role="tabpanel" aria-labelledby="t-fotos" hidden>
+    <div class="progwrap" id="fotobox"></div>
   </div>
 
   <div class="view" id="montar" role="tabpanel" aria-labelledby="t-prog" hidden>
@@ -1526,12 +1558,12 @@ function mediaSrc(m){ return m.src||('/_blob/'+m.asset); }
 function mediaOf(alvo,evento){return MD.filter(m=>m.alvo===alvo&&(evento===undefined||m.evento===evento)).sort((a,b)=>a.criadoEm-b.criadoEm);}
 function lightbox(m){
   const box=el('div',{class:'lbox',onclick:e=>{if(e.target===box||e.target.classList.contains('lx')) box.remove();}},
-    el('button',{class:'btn lx',type:'button'},'Fechar'),
+    el('button',{class:'btn lx',type:'button'},'Fechar'),el('button',{class:'btn lxd',type:'button',onclick:e=>{e.stopPropagation();baixarFoto(m,e.currentTarget);}},'⬇ Baixar'),
     m.tipo==='video'?el('video',{src:mediaSrc(m),controls:'',autoplay:'',playsinline:''}):el('img',{src:mediaSrc(m),alt:m.nome||'Foto'}),
     el('div',{class:'lcap'},fmt(d(m.data))+(m.legenda?' · '+m.legenda:(m.nome&&!window.__PUBLIC__?' · '+m.nome:'')),' ',(canWrite!==false&&db&&!window.__PUBLIC__)?(()=>{const cb=el('input',{type:'checkbox'}); cb.checked=!!m.publico; const lb=el('label',{class:'pubchk'},cb,' Mostrar no site público'); cb.addEventListener('change',async()=>{ try{ await db.collection('midia').doc(m._id).update({publico:cb.checked}); m.publico=cb.checked; }catch(e){ cb.checked=!cb.checked; writeErr(e); } }); return lb;})():null,' ',(canWrite!==false&&db&&AS)?delBtn(async()=>{ await db.collection('midia').doc(m._id).delete(); try{await AS.delete(m.asset);}catch(_){} box.remove(); }):null));
   (dlg.open?dlg:document.body).appendChild(box);
 }
-function gallery(list,small){
+function gallery(list,small,dl){
   if(!list.length) return null;
   const can=canWrite!==false&&db;
   return el('div',{class:'gal'+(small?' sm':'')},list.map(m=>el('div',{class:'th'},
@@ -1539,7 +1571,124 @@ function gallery(list,small){
       m.tipo==='video'?el('video',{src:mediaSrc(m)+'#t=0.5',preload:'metadata',muted:'',playsinline:''}):el('img',{src:mediaSrc(m),loading:'lazy',alt:m.nome||'Foto',onerror:e=>{e.target.replaceWith(el('span',{class:'miss'},'indisponível'));}}),
       m.tipo==='video'?el('span',{class:'play'},'▶'):null, m.publico&&!window.__PUBLIC__?el('span',{class:'pub'},'no site'):null),
     m.legenda?el('span',{class:'gcap'},m.legenda):null,
+    dl?dlBtn(m,'⬇'):null,
     can&&AS&&!small?delBtn(async()=>{ await db.collection('midia').doc(m._id).delete(); try{await AS.delete(m.asset);}catch(_){} }):null)));
+}
+/* ---------- baixar fotos (uma, várias em .zip) ---------- */
+const CRCT=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRCT[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+// .zip sem compressão (fotos já são comprimidas)
+function zipBlob(files){
+  const enc=new TextEncoder(), parts=[], cen=[]; let off=0;
+  const dt=new Date(), dtime=(dt.getHours()<<11)|(dt.getMinutes()<<5)|(dt.getSeconds()>>1), ddate=((dt.getFullYear()-1980)<<9)|((dt.getMonth()+1)<<5)|dt.getDate();
+  for(const f of files){
+    const nm=enc.encode(f.name), u=f.data, crc=crc32(u);
+    const h=new DataView(new ArrayBuffer(30)); h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true); h.setUint16(10,dtime,true); h.setUint16(12,ddate,true); h.setUint32(14,crc,true); h.setUint32(18,u.length,true); h.setUint32(22,u.length,true); h.setUint16(26,nm.length,true); h.setUint16(28,0,true);
+    parts.push(h.buffer,nm,u);
+    const c=new DataView(new ArrayBuffer(46)); c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(10,0,true); c.setUint16(12,dtime,true); c.setUint16(14,ddate,true); c.setUint32(16,crc,true); c.setUint32(20,u.length,true); c.setUint32(24,u.length,true); c.setUint16(28,nm.length,true); c.setUint32(42,off,true);
+    cen.push(c.buffer,nm); off+=30+nm.length+u.length;
+  }
+  const csz=cen.reduce((s,b)=>s+(b.byteLength||b.length),0);
+  const e=new DataView(new ArrayBuffer(22)); e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,csz,true); e.setUint32(16,off,true);
+  return new Blob([...parts,...cen,e.buffer],{type:'application/zip'});
+}
+const limpaNome=s=>str(s).replace(/[\\/:*?"<>|\u0000-\u001f]+/g,' ').replace(/\s+/g,' ').trim().slice(0,120);
+function extDe(m,type){ const t=type||''; return m.tipo==='video'?(t.includes('webm')?'.webm':'.mp4'):t.includes('png')?'.png':t.includes('webp')?'.webp':t.includes('gif')?'.gif':'.jpg'; }
+// nome do arquivo no padrão da pasta do RDO: "<legenda> (n)"; n conta as fotos do mesmo dia com a mesma legenda
+function baseNome(m){ return limpaNome(m.legenda||str(m.nome).replace(/\.[a-z0-9]{2,5}$/i,'').replace(/\s*\(\d+\)$/,''))||('Foto '+(m.data||'')); }
+function nomeFoto(m){ const b=baseNome(m); const ir=MD.filter(x=>x.data===m.data&&baseNome(x)===b).sort((a,c)=>a.criadoEm-c.criadoEm||(a._id<c._id?-1:1)); const i=ir.findIndex(x=>x._id===m._id); return ir.length>1||/\(\d+\)/.test(str(m.nome))?b+' ('+(i+1)+')':b; }
+async function salvarArquivo(nome,blob){
+  if(DL){ await DL.save({filename:nome,data:blob}); return; }
+  const asc=nome.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\u2013\u2014]/g,'-').replace(/[^\x20-\x7e]/g,'_'); const u=URL.createObjectURL(new Blob([blob],{type:'application/octet-stream'})); const a=el('a',{href:u,download:asc,style:'display:none'}); document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(u); a.remove(); },4000);
+}
+async function baixarFoto(m,btn){
+  const t=btn&&btn.textContent; if(btn){ btn.disabled=true; btn.textContent='Baixando…'; }
+  try{ const r=await fetch(mediaSrc(m)); if(!r.ok) throw 0; const b=await r.blob(); await salvarArquivo(nomeFoto(m)+extDe(m,b.type),b); if(btn) btn.textContent='Baixada'; }
+  catch(e){ if(btn) btn.textContent=(e&&(e.code==='declined'||e.code==='cancelled'))?'Cancelado':'Não foi possível baixar'; }
+  if(btn) setTimeout(()=>{ if(btn.isConnected){ btn.disabled=false; btn.textContent=t; } },2500);
+}
+async function baixarVarias(list,nomeZip,btn){
+  if(!list.length) return; if(list.length===1) return baixarFoto(list[0],btn);
+  const t=btn&&btn.textContent; if(btn) btn.disabled=true;
+  try{ const files=[], usados={};
+    for(let i=0;i<list.length;i++){ const m=list[i]; if(btn) btn.textContent='Preparando '+(i+1)+' de '+list.length+'…';
+      const r=await fetch(mediaSrc(m)); if(!r.ok) continue; const b=await r.blob();
+      let n=nomeFoto(m)+extDe(m,b.type); while(usados[n]) n=n.replace(/(\.[a-z0-9]+)$/i,'_$1'); usados[n]=1;
+      files.push({name:n,data:new Uint8Array(await b.arrayBuffer())}); }
+    if(btn) btn.textContent='Abrindo o download…';
+    await salvarArquivo(limpaNome(nomeZip)+'.zip',zipBlob(files)); if(btn) btn.textContent='Pronto: '+files.length+' fotos';
+  }catch(e){ if(btn) btn.textContent=(e&&(e.code==='declined'||e.code==='cancelled'))?'Cancelado':'Não foi possível baixar'; }
+  if(btn) setTimeout(()=>{ if(btn.isConnected){ btn.disabled=false; btn.textContent=t; } },3000);
+}
+const dlBtn=(m,txt)=>el('button',{type:'button',class:'btn dlb',title:'Baixar esta foto',onclick:e=>{ e.stopPropagation(); baixarFoto(m,e.currentTarget); }},txt||'⬇ Baixar');
+const dlVarias=(list,nomeZip,txt)=>el('button',{type:'button',class:'btn',onclick:e=>{ e.stopPropagation(); baixarVarias(list,nomeZip,e.currentTarget); }},txt+' ('+list.length+')');
+const ddmm=D=>D.slice(8,10)+'-'+D.slice(5,7)+'-'+D.slice(2,4);
+
+/* ---------- aba Fotos ---------- */
+let fotDia=null, fotPend=[], fotCfg={alvo:'',nome:'',pub:true}, fotSoSite=false;
+function nomeDoAlvo(a){ const x=dem.find(y=>y.id===a); if(x) return x.local; const p=pen.find(y=>y.id===a); if(p) return p.local||p.pedido||p.id; return 'Geral do dia'; }
+function legendaPadrao(a){ const x=dem.find(y=>y.id===a); if(!x) return ''; const ult=MD.filter(m=>m.alvo===a&&m.legenda&&(m.origem==='rdo'||m.origem==='painel')).sort((p,q)=>q.criadoEm-p.criadoEm)[0]; if(ult) return limpaNome(ult.legenda); const ds=str(x.descricao), lc=str(x.local).replace(/\s*\(.*?\)\s*/g,' ').replace(/\s*[–-]\s*/g,' ').trim(); return limpaNome(norm(lc).includes(norm(ds))?lc:(ds+' '+lc)); }
+function fotosAba(){ return MD.filter(m=>m.data&&!m.removido&&(window.__PUBLIC__||!fotSoSite||m.publico)&&!/^C/.test(m.alvo)&&(window.__PUBLIC__||m.publico||m.origem==='rdo'||m.origem==='painel'||dem.some(x=>x.id===m.alvo)||/^REL-/.test(m.alvo))); }
+async function salvarFotosAba(D,status){
+  if(!AS||!db){ status('Envio de fotos indisponível nesta visualização.','err'); return 0; }
+  const base=limpaNome(fotCfg.nome)||legendaPadrao(fotCfg.alvo)||'Fotos'; const alvo=fotCfg.alvo||('REL-'+D);
+  let n=MD.filter(m=>m.data===D&&baseNome(m)===base).length, ok=0; const n1=n+1; const errs=[];
+  for(let i=0;i<fotPend.length;i++){ const it=fotPend[i]; status('Enviando '+(i+1)+' de '+fotPend.length+'…');
+    try{ const p=await prepFile(it.file); let r; try{ r=await AS.upload(p.blob,{type:p.type}); }catch(e){ if(e&&e.code==='store_unavailable'){ await new Promise(s=>setTimeout(s,1500)); r=await AS.upload(p.blob,{type:p.type}); } else throw e; }
+      n++; await db.collection('midia').doc(newMid()).set({alvo,evento:'',asset:r.id,tipo:p.tipo,nome:base+' ('+n+')'+(p.tipo==='video'?'.mp4':'.jpg'),legenda:base,data:D,criadoEm:Date.now()+i,publico:!!fotCfg.pub,incluir:true,origem:'painel'}); ok++;
+    }catch(e){ errs.push((it.file.name||'foto')+': '+upErr(e)); writeErr(e); } }
+  status(errs.length?(ok?ok+' salva(s). ':'')+errs.join('; '):(ok===1?'1 foto salva como "'+base+' ('+n+')".':ok+' fotos salvas como "'+base+' ('+n1+'…'+n+')".'),errs.length?'err':'ok');
+  if(ok&&fotCfg.pub){ try{ await pedir('site',D); }catch(_){ } }
+  return ok;
+}
+function renderFotos(){
+  const box=$('fotobox'); if(!box) return; const v=$('fotos'); if(v&&v.hidden) return;
+  const ae=document.activeElement; if(ae&&box.contains(ae)&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)&&ae.type!=='checkbox') return;
+  box.textContent='';
+  const can=!window.__PUBLIC__&&canWrite!==false&&db&&AS;
+  const todas=fotosAba(); const dias=[...new Set(todas.map(m=>m.data))].sort().reverse();
+  if(!fotDia||(!dias.includes(fotDia)&&!can)) fotDia=dias[0]||iso(TODAY);
+  const D=fotDia, doDia=todas.filter(m=>m.data===D).sort((a,b)=>a.criadoEm-b.criadoEm);
+  const grupos=[]; doDia.forEach(m=>{ const k=dem.some(y=>y.id===m.alvo)||pen.some(y=>y.id===m.alvo)?m.alvo:'geral'; let g=grupos.find(x=>x.k===k); if(!g){ g={k,nome:k==='geral'?'Geral do dia':nomeDoAlvo(m.alvo),fs:[]}; grupos.push(g); } g.fs.push(m); });
+  grupos.sort((a,b)=>(a.k==='geral')-(b.k==='geral')||a.nome.localeCompare(b.nome));
+  const dsel=el('select',{'aria-label':'Dia',onchange:e=>{ fotDia=e.target.value; renderFotos(); }},(dias.includes(D)?dias:[D,...dias]).map(k=>{ const n=todas.filter(m=>m.data===k).length; return el('option',{value:k},fmt(d(k))+'/'+k.slice(0,4)+' · '+DSEM[d(k).getDay()]+' · '+n+(n===1?' foto':' fotos')); })); dsel.value=D;
+  const dt=can?el('input',{type:'date',value:D,'aria-label':'Escolher outro dia',onchange:e=>{ if(e.target.value){ fotDia=e.target.value; renderFotos(); } }}):null;
+  const hd=el('section',{class:'card'},el('h2',{},'Fotos ',el('small',{},window.__PUBLIC__?'fotos dos serviços por dia e por frente. Toque para ampliar; use os botões para baixar uma foto, a frente inteira ou o dia inteiro.':'fotos por dia e por frente. Marque "no site" nas que podem aparecer no site; as que entram no relatório publicado vão para o site automaticamente.')),
+    el('div',{class:'fotbar'},el('label',{},'Dia ',dsel),dt,doDia.length?dlVarias(doDia,'Fotos '+ddmm(D),'⬇ Baixar todas do dia'):null,
+      !window.__PUBLIC__?el('label',{class:'pubchk'},(()=>{ const c=el('input',{type:'checkbox'}); c.checked=fotSoSite; c.addEventListener('change',()=>{ fotSoSite=c.checked; renderFotos(); }); return c; })(),' mostrar só as que estão no site'):null));
+  box.appendChild(hd);
+  if(can){
+    const fs=el('select',{'aria-label':'Frente'},[el('option',{value:''},'Geral do dia (sem frente)'),...dem.filter(x=>x.sit!=='concluida'||x.termino>=D).sort((a,b)=>a.local.localeCompare(b.local)).map(x=>el('option',{value:x.id},corta(x.local,60)))]); fs.value=fotCfg.alvo;
+    const nm=el('input',{type:'text',maxlength:'120',placeholder:'Nome como na pasta do RDO, ex.: OTB Travessa Costa Chiab',value:fotCfg.nome||legendaPadrao(fotCfg.alvo)});
+    fs.addEventListener('change',()=>{ const ant=legendaPadrao(fotCfg.alvo); fotCfg.alvo=fs.value; if(!nm.value||nm.value===ant){ nm.value=legendaPadrao(fotCfg.alvo); } fotCfg.nome=nm.value; ex(); });
+    nm.addEventListener('input',()=>{ fotCfg.nome=nm.value; ex(); });
+    const pb=el('input',{type:'checkbox'}); pb.checked=fotCfg.pub; pb.addEventListener('change',()=>{ fotCfg.pub=pb.checked; });
+    const exm=el('span',{class:'cm'}); const ex=()=>{ const b=limpaNome(nm.value)||legendaPadrao(fotCfg.alvo)||'Fotos'; const n0=MD.filter(m=>m.data===D&&baseNome(m)===b).length; exm.textContent='Vão ficar com o nome "'+b+' ('+(n0+1)+')", "'+b+' ('+(n0+2)+')"…'; }; ex();
+    const pl=el('div',{class:'rfotos'}); const msg=el('span',{class:'msg',role:'status'});
+    const fin=el('input',{type:'file',accept:'image/*,video/*',multiple:'',hidden:''});
+    const bs=el('button',{type:'button',class:'btn primary',onclick:async()=>{ if(!fotPend.length) return; bs.disabled=true; const st=(t,c)=>{ msg.className='msg'+(c?' '+c:''); msg.textContent=t; };
+      const ok=await salvarFotosAba(D,st); fotPend.forEach(it=>URL.revokeObjectURL(it.url)); fotPend=[]; bs.disabled=false; const keep=msg.textContent,kc=msg.className; setTimeout(()=>{ renderFotos(); const m2=box.querySelector('.fotmsg'); if(m2){ m2.className=kc+' fotmsg'; m2.textContent=keep; } },700); }},'Salvar fotos');
+    const desenha=()=>{ pl.textContent=''; bs.hidden=!fotPend.length; bs.textContent='Salvar '+fotPend.length+(fotPend.length===1?' foto':' fotos');
+      fotPend.forEach((it,i)=>pl.appendChild(el('div',{class:'rfoto novo'},el('div',{class:'rth'},/^video/.test(it.file.type)?el('video',{src:it.url,muted:''}):el('img',{src:it.url,alt:''})),el('div',{class:'rfm'},el('span',{class:'cm'},'Nova'),el('button',{type:'button',class:'del',onclick:()=>{ URL.revokeObjectURL(it.url); fotPend.splice(i,1); desenha(); }},'tirar'))))); };
+    const add=files=>{ [...files].filter(f=>/^(image|video)\//.test(f.type)).forEach(f=>fotPend.push({file:f,url:URL.createObjectURL(f)})); desenha(); };
+    fin.addEventListener('change',()=>{ add(fin.files); fin.value=''; });
+    const drop=el('div',{class:'rdrop',tabindex:'0'},el('b',{},'Cole as fotos aqui (Ctrl+V)'),el('span',{},', arraste ou '),el('button',{type:'button',class:'btn',onclick:()=>fin.click()},'escolha várias'),fin);
+    drop.addEventListener('dragover',e=>{ e.preventDefault(); drop.classList.add('on'); }); drop.addEventListener('dragleave',()=>drop.classList.remove('on'));
+    drop.addEventListener('drop',e=>{ e.preventDefault(); drop.classList.remove('on'); add(e.dataTransfer.files); });
+    box.onpaste=e=>{ const f=[...(e.clipboardData&&e.clipboardData.files||[])]; if(f.length){ e.preventDefault(); add(f); } };
+    box.appendChild(el('section',{class:'card fotup'},el('h3',{},'Carregar fotos em '+fmt(d(D))),
+      el('div',{class:'fotform'},el('label',{},'Frente',fs),el('label',{},'Nome das fotos',nm),el('label',{class:'pubchk'},pb,' mostrar no site')),exm,drop,pl,el('div',{class:'crow'},bs,el('span',{class:'msg fotmsg'}),msg)));
+    desenha();
+  } else box.onpaste=null;
+  if(!doDia.length){ box.appendChild(el('section',{class:'card'},el('p',{class:'empty'},dias.length?'Nenhuma foto neste dia.':'Nenhuma foto ainda.'))); return; }
+  grupos.forEach(g=>{
+    const sec=el('section',{class:'card fotgrp'},el('div',{class:'fotgh'},el('h3',{},g.nome,el('small',{},' · '+g.fs.length+(g.fs.length===1?' foto':' fotos'))),dlVarias(g.fs,limpaNome(g.nome)+' '+ddmm(D),'⬇ Baixar todas desta frente')));
+    sec.appendChild(el('div',{class:'fotgrid'},g.fs.map(m=>el('figure',{class:'fot'},
+      el('button',{type:'button',class:'fotth','aria-label':'Ampliar',onclick:()=>lightbox(m)},m.tipo==='video'?el('video',{src:mediaSrc(m)+'#t=0.5',preload:'metadata',muted:'',playsinline:''}):el('img',{src:mediaSrc(m),loading:'lazy',alt:m.legenda||'Foto',onerror:e=>{e.target.replaceWith(el('span',{class:'miss'},'indisponível'));}}),m.tipo==='video'?el('span',{class:'play'},'▶'):null),
+      el('figcaption',{},el('span',{class:'fotn'},nomeFoto(m)),
+        !window.__PUBLIC__&&m.obsInt?el('span',{class:'robs'},'⚠ '+m.obsInt):null,
+        el('span',{class:'fota'},dlBtn(m),(!window.__PUBLIC__&&canWrite!==false&&db)?(()=>{ const c=el('input',{type:'checkbox'}); c.checked=m.publico; const l=el('label',{class:'pubchk'},c,' no site'); c.addEventListener('change',async()=>{ try{ await db.collection('midia').doc(m._id).update({publico:c.checked}); m.publico=c.checked; try{ await pedir('site',m.data); }catch(_){ } }catch(e){ c.checked=!c.checked; writeErr(e); } }); return l; })():null))))));
+    box.appendChild(sec); });
 }
 // seletor de arquivos usado nos formulários; também aceita colar (Ctrl+V) imagens no formulário
 function mediaPicker(form){
@@ -2373,7 +2522,7 @@ function renderRelatorios(){
       R.obs?el('div',{class:'relsec'},el('h3',{},'Observações do dia'),el('p',{style:'white-space:pre-wrap;margin:0'},R.obs)):null,
       el('div',{class:'relsec'},el('h3',{},'Serviços executados'),waHtml(R.exec)),
       porFrente.length?el('div',{class:'relsec'},el('h3',{},'Lançamentos do dia por frente'),porFrente):null,
-      el('div',{class:'relsec'},el('h3',{},'Fotos do dia ',el('small',{},fotos.length+(fotos.length===1?' foto':' fotos'))),fotos.length?Object.entries(porFr).map(([fid,ms])=>{ const x=dem.find(y=>y.id===fid); return el('div',{class:'relfr'},el('b',{},x?x.local:(fid.startsWith('REL-')?'Geral do dia':fid)),gallery(ms,false)); }):el('p',{class:'msg'},'Sem fotos publicadas neste dia.')),
+      el('div',{class:'relsec'},el('h3',{},'Fotos do dia ',el('small',{},fotos.length+(fotos.length===1?' foto':' fotos')),' ',fotos.length?dlVarias(fotos,'Relatório '+ddmm(sel)+' - fotos','⬇ Baixar todas'):null),fotos.length?Object.entries(porFr).map(([fid,ms])=>{ const x=dem.find(y=>y.id===fid); const nmf=x?x.local:(fid.startsWith('REL-')?'Geral do dia':fid); return el('div',{class:'relfr'},el('div',{class:'fotgh'},el('b',{},nmf),ms.length>1?dlVarias(ms,limpaNome(nmf)+' '+ddmm(sel),'⬇ Baixar desta frente'):null),gallery(ms,false,true)); }):el('p',{class:'msg'},'Sem fotos publicadas neste dia.')),
       R.demandas&&R.demandas.length?el('div',{class:'relsec'},el('h3',{},'Demandas extraordinárias aceitas'),el('ul',{},R.demandas.map(x=>el('li',{},el('b',{},x.id),' · '+(x.tipo?x.tipo+' · ':'')+x.pedido+(x.local?' – '+x.local:'')+' · '+x.destino)))):null,
       paradas.length?el('div',{class:'relsec'},el('h3',{},'Frentes paradas'),el('ul',{},paradas.map(x=>el('li',{},el('b',{},x.local),' · desde '+fmt(d(x.paradaAgora.a))+' · '+(x.paradaAgora.motivo||'motivo a confirmar'))))):null,
       perg.length?el('div',{class:'relsec'},el('h3',{},'Aguardando a fiscalização'),el('ul',{},perg.map(p=>el('li',{},el('b',{},p.id),' · '+p.pedido+(p.data?' · desde '+fmt(d(p.data)):''))))):null,
@@ -2414,9 +2563,9 @@ function renderRelAprov(){
   const dr=relDraft[D]; if(editando&&dr){ ex.value=dr.ex; pr.value=dr.pr; ob.value=dr.ob; }
   const guarda=()=>{ relDraft[D]={ex:ex.value,pr:pr.value,ob:ob.value}; }; [ex,pr,ob].forEach(t=>t.addEventListener('input',guarda));
   if(!editando){ ex.readOnly=true; ob.readOnly=true; }
-  const fotos=fotosDoDia(D).filter(m=>!m.removido&&(m.publico||m.origem==='rdo'||m.obsInt));
-  if(!relSelFotos[D]) relSelFotos[D]=new Set(R&&R.fotos&&R.fotos.length?R.fotos:fotos.filter(m=>m.publico&&m.incluir).map(m=>m._id));
-  const sel=relSelFotos[D]; fotos.forEach(m=>{ if(m.publico&&m.incluir&&m.criadoEm>(R&&R.salvoEm||R&&R.aprovadoEm||0)&&!(R&&R.fotos||[]).includes(m._id)) sel.add(m._id); });
+  const fotos=fotosDoDia(D).filter(m=>!m.removido&&(m.publico||m.origem==='rdo'||m.origem==='painel'||m.obsInt));
+  if(!relSelFotos[D]) relSelFotos[D]=new Set(R&&R.fotos&&R.fotos.length?R.fotos:fotos.filter(m=>m.incluir&&!m.obsInt&&(m.publico||m.origem==='rdo'||m.origem==='painel')).map(m=>m._id));
+  const sel=relSelFotos[D]; fotos.forEach(m=>{ if(m.incluir&&!m.obsInt&&(m.publico||m.origem==='rdo'||m.origem==='painel')&&m.criadoEm>(R&&R.salvoEm||R&&R.aprovadoEm||0)&&!(R&&R.fotos||[]).includes(m._id)) sel.add(m._id); });
   const info=el('div',{class:'msg',role:'status'});
   const link=SITE_URL+'#relatorios/'+D, linha='Relatório de '+fmt(d(D))+' publicado: '+link;
   const est=R&&R.publico?el('p',{class:'msg ok'},'Publicado em '+fdh(R.aprovadoEm)+(relEdit[D]?'. Você está editando: as mudanças só vão para o site quando você publicar de novo.':'. Aparece no site na próxima atualização (de hora em hora) ou quando você pedir "atualiza o site".'))
@@ -2769,7 +2918,7 @@ function renderAcomp(){
 function confirmar(b){ if(b.dataset.ok==='1') return true; b.dataset.ok='1'; b.textContent='Toque de novo para substituir'; setTimeout(()=>{ b.dataset.ok=''; b.textContent='Refazer rascunho'; },5000); return false; }
 
 /* ---------- abas ---------- */
-const VIEWS={atencao:'t-atencao',painel:'t-painel',programadas:'t-prog',agenda:'t-agenda',relatorios:'t-rel',montar:'t-prog',campo:'t-campo',acomp:'t-acomp',lancamentos:'t-lanc'};
+const VIEWS={atencao:'t-atencao',painel:'t-painel',programadas:'t-prog',agenda:'t-agenda',relatorios:'t-rel',fotos:'t-fotos',montar:'t-prog',campo:'t-campo',acomp:'t-acomp',lancamentos:'t-lanc'};
 let relSel=null;
 function go(name){
   if(name==='conversas'){ name='lancamentos'; setTimeout(()=>{ const c=$('cvdet'); if(c){ c.open=true; c.scrollIntoView({behavior:'smooth',block:'start'}); } },60); }
@@ -2779,6 +2928,7 @@ function go(name){
   const h=name==='painel'?'':'#'+name+(name==='relatorios'&&relSel?'/'+relSel:'');
   if(name==='relatorios'){ renderRelatorios(); renderRelAprov(); }
   if(name==='acomp'){ aSujo=false; renderAcomp(); }
+  if(name==='fotos') renderFotos();
   if(location.hash!==h) history.replaceState(null,'',h||location.pathname+location.search);
   if(name==='painel') renderGantt();
 }
@@ -2798,7 +2948,7 @@ $('limpar').addEventListener('click',()=>{state.sit=null;state.q='';state.equipe
 let rt, lastNarrow=NARROW(); addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{renderGantt(); if(NARROW()!==lastNarrow){ lastNarrow=NARROW(); renderMapa(); }},150);});
 
 function qres(){ const r=$('qres'); if(!r) return; const on=state.q||state.equipe||state.parada||state.sit; if(!on){r.textContent='';return;} const t=qTerms(); const np=pen.filter(p=>hit(t,[p.pedido,p.local,p.quem,p.id,p.porque,p.aguardando])).length; r.textContent=filtered().length+' frentes'+(state.q?' · '+np+' pendências':'')+' encontradas'; }
-function render(){derive();renderAcompAuto();fillSelects();renderTriagem();renderAlertas();renderAtencao();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderProgSalvas();renderAgenda();renderMontar();renderRelatorios();renderRelAprov();renderFalta();renderCampo();renderMsgs();renderConv();renderLog();refreshDet();qres();
+function render(){derive();renderAcompAuto();fillSelects();renderTriagem();renderAlertas();renderAtencao();renderTiles();renderAguardando();renderDonut();renderGantt();renderMapa();renderPend();renderProg();renderProgSalvas();renderAgenda();renderMontar();renderRelatorios();renderRelAprov();renderFotos();renderFalta();renderCampo();renderMsgs();renderConv();renderLog();refreshDet();qres();
   $('asof').textContent=(loaded.frentes&&loaded.eventos)?(window.__PUBLIC__?'Atualizado em '+window.__PUBLIC__:'Atualizado ao vivo · '+fmt(TODAY)+'/'+TODAY.getFullYear()):'carregando…';}
 
 function banner(t){const b=$('banner'); if(!t){b.hidden=true;return;} b.textContent=t; b.hidden=false;}
