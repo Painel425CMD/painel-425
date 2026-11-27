@@ -2224,7 +2224,7 @@ function gerarMsg(tipo,dia,sel){
         if(ex.length) corpo=corpo.concat(ex); else if(st==='parada'){ const p=x.paradaAgora||evD.find(e=>e.tipo==='Parada'); corpo.push('Operação pausada'+(p&&p.motivo?': '+p.motivo.toLowerCase():'')); } else { corpo.push(cc[0]||((st==='concluida'?'':'Continuidade: ')+resumo(x.descricao.split(' (')[0]))); if(!cc.length&&!x.execucao) faltas.push(n+'. '+x.local); } }
       else corpo.push(x.sit==='pendente'?resumo(x.execucao||x.descricao):('Continuidade: '+resumo(x.descricao.split(' (')[0])));
       
-      corpo.forEach(c=>linhas.push('* *'+c.replace(/\*/g,'').trim()+'*'));
+      corpo.forEach(c=>linhas.push('*'+c.replace(/\*/g,'').trim()+'*'));
       linhas.push('*Responsável: '+(x._corpo===undefined?equipesDe(x):x.equipe||'a definir')+'*','');
       if(tipo==='exec'){ const nf=mediaOf(x.id).filter(m=>m.data===D&&m.publico&&!m.removido).length; if(nf) fotos.push(x.local+': '+nf+(nf===1?' foto':' fotos')); }
     } }
